@@ -1,5 +1,5 @@
 View this project on [CADLAB.io](https://cadlab.io/project/25780). 
-Contact : ![@mozc_channel](https://twitter.com/mozc_channel)
+Contact : [@mozc_channel](https://twitter.com/mozc_channel)
 
 # [WIP]tinyEtherDeveloper
 Inexpensive FPGA board-based Ethernet evaluation board project.  
