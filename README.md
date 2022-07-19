@@ -1,7 +1,7 @@
 View this project on [CADLAB.io](https://cadlab.io/project/25780). 
 Contact : ![@mozc_channel](https://twitter.com/mozc_channel)
 
-# tinyEtherDeveloper
+# [WIP]tinyEtherDeveloper
 Inexpensive FPGA board-based Ethernet evaluation board project.  
 Consists mostly of DIP components and uses Tang PriMER. It can be built for about only $50.
 
