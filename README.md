@@ -6,7 +6,7 @@ Inexpensive FPGA board-based Ethernet evaluation board project.
 Consists mostly of DIP components and uses Tang PriMER. It can be built for about only $50.
 
 ## About
-**5,000円程度**でほとんどの部品が秋葉原で揃う, Ethernetポートを**4つ**備えた評価ボードです. 10BASE-Tに対応しています.  
+**7,000円程度**でほとんどの部品が秋葉原で揃う, Ethernetポートを**4つ**備えた実験ボードです. 10BASE-Tに対応しています.  
 はんだ付けが苦手な方でも容易に実装できるよう, 極力面実装部品の仕様は控えています.  
 FPGAボードには, SipeedのTang PriMERを用いており, そこそこ豊富なBRAMを備えるため, 様々な応用が可能です.
 
