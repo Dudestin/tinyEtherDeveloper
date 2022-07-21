@@ -1,101 +1,160 @@
-// Separate incoming data to HEADER and PAYLOAD at MAC Layer,
-// Then Store to each FIFO.
-// HEADER : {DST_MAC[63:0], SRC_MAC[63:0], LEN[15:0]}
-// PAYLOAD: [8:0][MTU-1:0] notice : expanded 8 to 9, need to store EOD Flags
+// Decode PHY_FIFO data & store HEADER, PAYLOAD to DISTINCT FIFO
 
-module MAC_DEC #( 
-    parameter MTU = 1500
-) (
-	// general interface
-	input  wire clk,
-	input  wire arst_n,
-
-    // SNI (Serial Network Interface) signal
-    input  wire RXC,  // RX Clock
-    input  wire CRS,  // Carrier Sense
-    output wire RXD,
-    
-	// Source FIFO  Interface
-	input  wire S_fifo_aempty,     // threshold should be set to nearby MTU
-	input  wire S_fifo_rden,
-	output wire [7:0]  S_fifo_dout,
-    
-    // Destination FIFO Intereface
-    // Header FIFO
-    inout  wire H_fifo_mutex,
-    input  wire H_fifo_aempty, // threshold should set to FIFOLENGTH - MTU
- 	output wire [111:0] H_fifo_din,
+module MAC_DEC(
+	clk,
+	arst_n,
+	
+	// PHY-FIFO
+	i_fifo_dout,
+	i_fifo_empty,
+	i_fifo_aempty,
+	i_fifo_rden,
+	i_fifo_del,
+	
+	// HEADER-FIFO	
+	h_fifo_din,
+	h_fifo_full,
+	h_fifo_wren,
+	
+	// BODY-FIFO 
+ 	b_fifo_din,
+ 	b_fifo_afull,
+ 	b_fifo_wren,
+ 	b_fifo_del
+ );
+ 	input wire clk;
+ 	input wire arst_n;
  	
- 	// Payload FIFO
- 	inout  wire P_fifo_mutex,
- 	input  wire P_fifo_aempty,
- 	output wire [7:0] P_fifo_din
-);
-
-	// state 
-	reg [1:0]  STATE;
-	paramter S_IDLE = 2'b00,
-		S_HEADER = 2'b01,
-		S_BODY   = 2'b10,
-		S_END    = 2'b11;
-
-	// To detect SFD & FCS
-	reg [31:0] seq;
-
-	reg [6:0]  S_HEADER_cnt;
+ 	// PHY-FIFO
+	input wire i_fifo_dout;
+	input wire i_fifo_empty;
+	input wire i_fifo_aempty;
+	output wire i_fifo_rden;
+	input wire i_fifo_del;
 	
-	reg [111:0] header_reg;
+	// HEADER-FIFO
+	output wire [111:0] h_fifo_din;
+	input  wire h_fifo_full;
+	output wire h_fifo_wren;
 	
-	reg [15:0]  S_BODY_cnt;
-	reg [7:0]   payload_reg;
+	// BODY-FIFO
+	output wire [7:0] b_fifo_din;
+	input  wire b_fifo_afull;
+	output wire b_fifo_wren;
+	output wire b_fifo_del;
 
+	// STATE MACHINE
+	reg [1:0] STATE;
+	localparam S_IDLE = 2'b00,
+    	  S_HEADER = 2'b01,
+    	  S_PAYLOAD = 2'b10,
+    	  S_END      = 2'b11;		
+
+	reg [3:0] cnt_reg;	
+	
+	reg i_fifo_rden_reg;
+	
+	reg b_fifo_wren_reg;
+	reg [7:0] b_fifo_din_reg;
+	reg h_fifo_wren_reg;	
+	reg [111:0] h_fifo_din_reg;
+
+	assign b_fifo_wren= b_fifo_wren_reg;
+	assign b_fifo_din = b_fifo_din_reg;
+	assign h_fifo_wren= h_fifo_wren_reg;
+	assign h_fifo_din = h_fifo_din_reg;
+	
 	always @(posedge clk or negedge arst_n)
 	begin
 		if (arst_n == 1'b0)
 		begin
-			// TODO : reset process
+			STATE   <= S_IDLE;
+			cnt_reg <= 4'b0;
+			i_fifo_rden_reg <= 1'b0;
+			b_fifo_wren_reg <= 1'b0;
+			b_fifo_din_reg  <= 8'b0;
+			h_fifo_wren_reg <= 1'b0;
+			h_fifo_din_reg  <= 111'b0;
 		end
 		else
 		begin
-			// Main Procedure Section
 			if (STATE == S_IDLE)
 			begin
-				if (~S_fifo_aempty & ~H_fifo_mutex & ~P_fifo_mutex)
-				begin
-					STATE 
-				end
-				// hoge
+				// Require h_fifo has space & b_fifo_afull has space able to store 1,514B
+				// This assumption will achieve circuit simplicity.
+				if (~i_fifo_aempty & ~h_fifo_full & ~b_fifo_afull)
+					STATE <= S_HEADER;
 			end
+			
 			else if (STATE == S_HEADER)
 			begin
-				header_reg <= {header_reg[110:0], RXD};
-				S_HEADER_cnt <= S_HEADER_cnt + 1'b1;
-				if (S_HEADER_cnt == 7'd111) // TODO : check
-					STATE <= S_BODY;
-			end
-			else if (STATE == S_BODY)
-			begin
-				S_BODY_cnt <= S_BODY_cnt + 1'b1;
-				payload_reg <= {payload_reg[6:0], RXD};
-				if (S_BODY_cnt[2:0] == 3'd7)
+				// TODO[x] : if reach DELIMITER, GO TO S_END
+				// TODO[x] : if i_fifo EMPTY, STOLE & wait
+				if (i_fifo_del == 1'b1) // end of FRAME, something wrong happend, go to S_END
 				begin
-					// TODO : write payload_reg to P_fifo
-					if (S_BODY_cnt >> 3 == MTU)
-						STATE <= S_BODY;
+					i_fifo_rden_reg <= 1'b0;
+					STATE <= S_END; 
 				end
-				// if detect FCS, go to S_END
-				if (seq[31:0] == /* FCS */)
-					STATE <= S_END;
+				else
+				begin
+					if (cnt_reg == 4'd13) // end of HEADER, go to S_PAYLOAD
+					begin
+						i_fifo_rden_reg <= 1'b0;
+						STATE   <= S_PAYLOAD;
+					end	
+					else if (i_fifo_empty) // stole
+					begin
+					
+					end
+					else // if data has provided, store HEADER to h_fifo.
+					begin
+						cnt_reg <= cnt_reg + 1'b1;
+						i_fifo_rden_reg <= 1'b1;
+						h_fifo_din_reg  <= {h_fifo_din_reg[103:0], i_fifo_dout};
+					end
+				end
 			end
+			
+			else if (STATE == S_PAYLOAD)
+			begin
+				if (i_fifo_del == 1'b1) // end of FRAME, go to S_END
+				begin
+					i_fifo_rden_reg <= 1'b0;
+					b_fifo_wren_reg <= 1'b0;
+					h_fifo_wren_reg <= 1'b1;
+					STATE <= S_END;				
+				end
+				else
+				begin
+					if (i_fifo_empty) // stole
+					begin
+						b_fifo_wren_reg <= 1'b0;
+					end
+					else // if data has provided, store to b_fifo.
+					begin
+						i_fifo_rden_reg <= 1'b1;
+						b_fifo_wren_reg <= 1'b1;
+						b_fifo_din_reg  <= i_fifo_dout;
+					end
+				end
+			end
+			
 			else if (STATE == S_END)
 			begin
-				// TODO : write preamble_reg to H_fifo
+				STATE   <= S_IDLE;
+				cnt_reg <= 4'b0;
+				i_fifo_rden_reg <= 1'b0;
+				b_fifo_wren_reg <= 1'b0;
+				b_fifo_din_reg  <= 8'b0;
+				h_fifo_wren_reg <= 1'b0;
+				h_fifo_din_reg  <= 111'b0;
 			end
-
-			// if detect preamble, go to S_HEADER @ any STATE
-			if (seq[7:0] == 8'hAB) // SFD
-				STATE = S_HEADER;
+			
+			else // UNDEFINED STATE
+			begin
+				STATE <= S_END;
 			end
 		end
 	end
+
 endmodule

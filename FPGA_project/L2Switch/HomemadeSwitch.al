@@ -10,13 +10,15 @@
     </HardWare>
     <Source_Files>
         <Verilog>
-            <File>src/PHY_RX.v</File>
             <File>src/PHY_TX.v</File>
             <File>src/xorshift.v</File>
             <File>src/TOP_LoopbackTest.v</File>
             <File>src/m_seq_32.v</File>
             <File>al_ip/PACKET_FIFO.v</File>
             <File>src/TOP_FIFOTest.v</File>
+            <File>src/MAC_DEC.v</File>
+            <File>src/MAC_ENC.v</File>
+            <File>src/PHY_RX.v</File>
         </Verilog>
         <ADC_FILE>constraints/io.adc</ADC_FILE>
         <SDC_FILE/>
@@ -28,8 +30,8 @@
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-07-08 05:49:32</Step_Last_Change>
-        <Current_Step>60</Current_Step>
+        <Step_Last_Change>2022-07-21 21:18:47</Step_Last_Change>
+        <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>
