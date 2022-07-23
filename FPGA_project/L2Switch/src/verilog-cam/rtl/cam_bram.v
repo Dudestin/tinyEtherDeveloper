@@ -133,7 +133,7 @@ generate
         wire [RAM_DEPTH-1:0] match_data;
         wire [RAM_DEPTH-1:0] ram_data;
 
-        ram_dp #(
+        ram_dp_ip #(
             .DATA_WIDTH(RAM_DEPTH),
             .ADDR_WIDTH(W)
         )
@@ -144,11 +144,13 @@ generate
             .a_addr(compare_data[SLICE_WIDTH * slice_ind +: W]),
             .a_din({RAM_DEPTH{1'b0}}),
             .a_dout(match_data),
+            .a_rst(~rst),
             .b_clk(clk),
             .b_we(wr_en),
             .b_addr(ram_addr[SLICE_WIDTH * slice_ind +: W]),
             .b_din((ram_data & ~clear_bit) | set_bit),
-            .b_dout(ram_data)
+            .b_dout(ram_data),
+            .b_rst(~rst)
         );
 
         always @* begin
