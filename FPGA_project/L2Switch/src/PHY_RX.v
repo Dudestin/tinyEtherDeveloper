@@ -1,7 +1,6 @@
 // RX CSMA/CD Half-Duplex Ethernet Module with SNI Interface
 // Receive data from PHY, then delete preamble, SFD and FCS section.
 // After, Store data and EOD (End of Data) flags to FIFO.
-// notice : this module don't check FCS is correct currently.
 
 module PHY_RX(
 	arst_n,
@@ -33,13 +32,13 @@ module PHY_RX(
     	  S_BODY     = 2'b10,
     	  S_END      = 2'b11;	
 
-	reg [39:0] seq; // 1Byte + 4Byte(FCS)
+	reg [7:0] seq; // 1Byte
 	reg [2:0] counter; // 0 -> 7 counter for make a Byte from bits
 
-	assign fifo_din = seq[39:32];
+	assign fifo_din = seq;
 	// store to fifo 1Byte cycle
 	assign fifo_wren = (counter == 3'h7);
-	//assign fifo_wren = 1'b1;	
+	// assign fifo_wren = 1'b1;	
 	assign fifo_EOD_in = ~CRS & (STATE == S_BODY);
 
 	always @(posedge RXC or negedge arst_n)
@@ -47,12 +46,12 @@ module PHY_RX(
 		if (arst_n == 1'b0)
 		begin
 			STATE   <= S_IDLE;
-			seq     <= 40'b0;
+			seq     <= 8'b0;
 			counter <= 3'b0;
 		end
 		else
 		begin
-			seq <= {seq[38:0], RXD};
+			seq <= {seq[6:0], RXD};
 			if (STATE == S_IDLE)
 			begin
 				if (CRS & ~fifo_afull)
@@ -61,10 +60,9 @@ module PHY_RX(
 			
 			else if (STATE == S_PREAMBLE)
 			begin
-				// if detect SFD, go to S_BODY
 				if (~CRS)
 					STATE <= S_IDLE;
-				else if (seq[39:32] == 8'hAB)
+				else if (seq == 8'b1010_1011) // detect SFD
 					STATE <= S_BODY;
 			end
 						
@@ -77,7 +75,6 @@ module PHY_RX(
 				end
 		
 				// store to fifo 1Byte cycle
-				// TODO : check latency
 			end
 			
 			else if (STATE == S_END)
