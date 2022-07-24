@@ -75,7 +75,7 @@ module MAC_DEC(
 	input wire i3_fifo_del;
 	
 	// HEADER-FIFO
-	output wire [111:0] h_fifo_din;
+	output wire [113:0] h_fifo_din;
 	input  wire h_fifo_full;
 	output wire h_fifo_wren;
 	
@@ -98,20 +98,22 @@ module MAC_DEC(
 	
 	reg b_fifo_wren_reg;
 	reg [7:0] b_fifo_din_reg;
+	reg b_fifo_del_reg;
+	assign b_fifo_del = b_fifo_del_reg;
 	reg h_fifo_wren_reg;	
 	reg [111:0] h_fifo_din_reg;
+
+	// select id by schedular
+	reg [1:0] phy_id_reg;
 
 	assign b_fifo_wren= b_fifo_wren_reg;
 	assign b_fifo_din = b_fifo_din_reg;
 	assign h_fifo_wren= h_fifo_wren_reg;
-	assign h_fifo_din = h_fifo_din_reg;
+	assign h_fifo_din = {h_fifo_din_reg, phy_id_reg};
 
 	// schedular depend on i_fifo_aempty
 	wire [3:0] i_fifo_aempty;
-	assign i_fifo_afull = {i0_fifo_aempty, i1_fifo_aempty, i2_fifo_aempty, i3_fifo_aempty};
-	
-	// select id by schedular
-	reg [1:0] phy_id_reg;
+	assign i_fifo_aempty = {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
 	
 	// signal MUX by phy_id_reg
 	wire [7:0] i_fifo_dout;
@@ -153,8 +155,9 @@ module MAC_DEC(
 			i_fifo_rden_reg <= 1'b0;
 			b_fifo_wren_reg <= 1'b0;
 			b_fifo_din_reg  <= 8'b0;
+			b_fifo_del_reg  <= 1'b0;
 			h_fifo_wren_reg <= 1'b0;
-			h_fifo_din_reg  <= 111'b0;
+			h_fifo_din_reg  <= 112'b0;
 		end
 		else
 		begin
@@ -167,9 +170,9 @@ module MAC_DEC(
 				 	STATE <= S_HEADER;
 					casex (~i_fifo_aempty) // simple schedular
 						4'bxxx1 : phy_id_reg <= 2'b00;
-						4'bxx1x : phy_id_reg <= 2'b01;
-						4'bx1xx : phy_id_reg <= 2'b10;
-						4'b1xxx : phy_id_reg <= 2'b11;
+						4'bxx10 : phy_id_reg <= 2'b01;
+						4'bx100 : phy_id_reg <= 2'b10;
+						4'b1000 : phy_id_reg <= 2'b11;
 						default : STATE <= S_IDLE;
 					endcase
 				end					
@@ -180,50 +183,40 @@ module MAC_DEC(
 				// TODO[x] : if reach DELIMITER, GO TO S_END
 				// TODO[x] : if i_fifo EMPTY, STOLE & wait
 				if (i_fifo_del == 1'b1) // end of FRAME, something wrong happend, go to S_END
-				begin
-					i_fifo_rden_reg <= 1'b0;
 					STATE <= S_END; 
-				end
-				else
+				else if (i_fifo_empty) 
 				begin
+					// stole
+				end
+				else // data has provided, store HEADER to h_fifo.
+				begin
+					cnt_reg <= cnt_reg + 1'b1;
+					i_fifo_rden_reg <= 1'b1;
+					h_fifo_din_reg  <= {h_fifo_din_reg[103:0], i_fifo_dout};
 					if (cnt_reg == 4'd13) // end of HEADER, go to S_PAYLOAD
-					begin
-						i_fifo_rden_reg <= 1'b0;
-						STATE   <= S_PAYLOAD;
-					end	
-					else if (i_fifo_empty) // stole
-					begin
-					
-					end
-					else // data has provided, store HEADER to h_fifo.
-					begin
-						cnt_reg <= cnt_reg + 1'b1;
-						i_fifo_rden_reg <= 1'b1;
-						h_fifo_din_reg  <= {h_fifo_din_reg[103:0], i_fifo_dout};
-					end
+						STATE <= S_PAYLOAD;
 				end
 			end
 			
 			else if (STATE == S_PAYLOAD)
 			begin
-				if (i_fifo_del == 1'b1) // end of FRAME, go to S_END
+				if (i_fifo_empty)
 				begin
-					i_fifo_rden_reg <= 1'b0;
+					/* stole */ 
+					// i_fifo_rden_reg <= 1'b0;
 					b_fifo_wren_reg <= 1'b0;
-					h_fifo_wren_reg <= 1'b1;
-					STATE <= S_END;				
 				end
-				else
+				else    // if data has provided, store to b_fifo.
 				begin
-					if (i_fifo_empty) // stole
+					i_fifo_rden_reg <= 1'b1;
+					b_fifo_wren_reg <= 1'b1;
+					b_fifo_din_reg  <= i_fifo_dout;
+					if (i_fifo_del == 1'b1) // end of frame
 					begin
-						b_fifo_wren_reg <= 1'b0;
-					end
-					else // if data has provided, store to b_fifo.
-					begin
-						i_fifo_rden_reg <= 1'b1;
-						b_fifo_wren_reg <= 1'b1;
-						b_fifo_din_reg  <= i_fifo_dout;
+						// TODO [] : append header fifo information, i.e. PORT (must)..., CRCvalid
+						h_fifo_wren_reg <= 1'b1; // write to header fifo
+						b_fifo_del_reg <= 1'b1;  // write delimiter to body fifo
+						STATE <= S_END;
 					end
 				end
 			end
@@ -235,8 +228,9 @@ module MAC_DEC(
 				i_fifo_rden_reg <= 1'b0;
 				b_fifo_wren_reg <= 1'b0;
 				b_fifo_din_reg  <= 8'b0;
+				b_fifo_del_reg  <= 1'b0;
 				h_fifo_wren_reg <= 1'b0;
-				h_fifo_din_reg  <= 111'b0;
+				h_fifo_din_reg  <= 112'b0;
 			end
 			
 			else // UNDEFINED STATE
