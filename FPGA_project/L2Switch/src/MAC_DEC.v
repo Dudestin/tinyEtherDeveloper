@@ -77,7 +77,7 @@ module MAC_DEC(
 	
 	// HEADER-FIFO
 	// h_fifo_din = SRC_MAC[47:0] + DST_MAC[47:0] + TYPE[15:0] + (PORT[1:0] + FCS_CORRECT[0:0])
-	output wire [114:0] h_fifo_din;
+	output wire [114:0] h_fifo_din;	
 	input  wire h_fifo_full;
 	output wire h_fifo_wren;	
 	reg [111:0] h_fifo_din_reg;

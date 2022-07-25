@@ -45,15 +45,15 @@ module PACKET_FIFO (
 EG_LOGIC_FIFO #(
  	.DATA_WIDTH_W(9),
 	.DATA_WIDTH_R(9),
-	.DATA_DEPTH_W(8192),
-	.DATA_DEPTH_R(8192),
+	.DATA_DEPTH_W(4096),
+	.DATA_DEPTH_R(4096),
 	.ENDIAN("BIG"),
 	.RESETMODE("ASYNC"),
 	.E(0),
-	.F(8192),
+	.F(4096),
 	.ASYNC_RESET_RELEASE("SYNC"),
 	.AE(6),
-	.AF(6600))
+	.AF(3000))
 logic_fifo(
 	.rst(rst),
 	.di(new_din),

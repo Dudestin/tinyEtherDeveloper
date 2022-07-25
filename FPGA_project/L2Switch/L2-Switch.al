@@ -28,6 +28,7 @@
             <File>al_ip/clk_bufg.v</File>
             <File>al_ip/pll_clk100M.v</File>
             <File>src/crc.v</File>
+            <File>al_ip/HEADER_FIFO.v</File>
         </Verilog>
         <ADC_FILE>constraints/io.adc</ADC_FILE>
         <SDC_FILE/>
@@ -39,7 +40,7 @@
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-07-25 11:35:54</Step_Last_Change>
+        <Step_Last_Change>2022-07-25 14:47:01</Step_Last_Change>
         <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>

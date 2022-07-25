@@ -2,45 +2,14 @@ module TOP_L2_SWITCH(
 	CLK_IN,
 	arst_n,
 	
-	/* PHY0 */
-	PHY0_RST,
-	PHY0_TXEN,
-	PHY0_TXD,
-	PHY0_TXC,
-	PHY0_RXD,
-	PHY0_RXC,
-	PHY0_CRS,
-	PHY0_COL,
-
-	/* PHY1 */	
-	PHY1_RST,
-	PHY1_TXEN,
-	PHY1_TXD,
-	PHY1_TXC,
-	PHY1_RXD,
-	PHY1_RXC,
-	PHY1_CRS,
-	PHY1_COL,
-
-	/* PHY2 */	
-	PHY2_RST,
-	PHY2_TXEN,
-	PHY2_TXD,
-	PHY2_TXC,
-	PHY2_RXD,
-	PHY2_RXC,
-	PHY2_CRS,
-	PHY2_COL,
-
-	/* PHY3 */	
-	PHY3_RST,
-	PHY3_TXEN,
-	PHY3_TXD,
-	PHY3_TXC,
-	PHY3_RXD,
-	PHY3_RXC,
-	PHY3_CRS,
-	PHY3_COL			
+	PHY_RST,
+	PHY_TXEN,
+	PHY_TXD,
+	PHY_TXC,
+	PHY_RXD,
+	PHY_RXC,
+	PHY_CRS,
+	PHY_COL		
 );
 	parameter PHY_NUM = 4;
 	
@@ -56,69 +25,18 @@ module TOP_L2_SWITCH(
 	// 100 MHz system clock
 	// TODO [] : check
 	wire raw_clk;
-	pll_clk100M pll_clk100M_impl(
-		.refclk(CLK_IN),
-		.reset(rst),
-		.dclk(),
-		.dcs(),
-		.dwe(),
-		.di(),
-		.daddr(),
-		.extlock(),
-		.do(),
-		.clk0_out(raw_clk)
-	);
-	clk_bufg clk_bufg_impl (.i(raw_clk), .o(clk));
+	// clk_bufg clk_bufg_impl (.i(raw_clk), .o(clk));
+	clk_bufg clk_bufg_impl (.i(CLK_IN), .o(clk));
+	
+	output wire [3:0] PHY_RST;
+	output wire [3:0] PHY_TXEN;
+	output wire [3:0] PHY_TXD;
+	input  wire [3:0] PHY_TXC;
+	input  wire [3:0] PHY_RXD;
+	input  wire [3:0] PHY_RXC;
+	input  wire [3:0] PHY_CRS;
+	input  wire [3:0] PHY_COL;
 
-	/* PHY0 */
-	output wire PHY0_RST;
-	output wire PHY0_TXEN;
-	output wire PHY0_TXD;
-	input  wire PHY0_TXC;
-	input  wire PHY0_RXD;
-	input  wire PHY0_RXC;
-	input  wire PHY0_CRS;
-	input  wire PHY0_COL;
-	
-	/* PHY1 */
-	output wire PHY1_RST;
-	output wire PHY1_TXEN;
-	output wire PHY1_TXD;
-	input  wire PHY1_TXC;
-	input  wire PHY1_RXD;
-	input  wire PHY1_RXC;
-	input  wire PHY1_CRS;
-	input  wire PHY1_COL;
-	
-	/* PHY2 */		
-	output wire PHY2_RST;
-	output wire PHY2_TXEN;
-	output wire PHY2_TXD;
-	input  wire PHY2_TXC;
-	input  wire PHY2_RXD;
-	input  wire PHY2_RXC;
-	input  wire PHY2_CRS;
-	input  wire PHY2_COL;
-	
-	/* PHY3 */
-	output wire PHY3_RST;
-	output wire PHY3_TXEN;
-	output wire PHY3_TXD;
-	input  wire PHY3_TXC;
-	input  wire PHY3_RXD;
-	input  wire PHY3_RXC;
-	input  wire PHY3_CRS;
-	input  wire PHY3_COL;		
-	
-	wire [3:0] PHY_RST  = {PHY3_RST, PHY2_RST, PHY1_RST, PHY0_RST};
-	wire [3:0] PHY_TXEN = {PHY3_TXEN, PHY2_TXEN, PHY1_TXEN, PHY0_TXEN};		
-	wire [3:0] PHY_TXD  = {PHY3_TXD, PHY2_TXD, PHY1_TXD, PHY0_TXD};	
-	wire [3:0] PHY_TXC  = {PHY3_TXC, PHY2_TXC, PHY1_TXC, PHY0_TXC};	
-	wire [3:0] PHY_RXD  = {PHY3_RXD, PHY2_RXD, PHY1_RXD, PHY0_RXD};	
-	wire [3:0] PHY_RXC  = {PHY3_RXC, PHY2_RXC, PHY1_RXC, PHY0_RXC};		
-	wire [3:0] PHY_CRS  = {PHY3_CRS, PHY2_CRS, PHY1_CRS, PHY0_CRS};	
-	wire [3:0] PHY_COL  = {PHY3_COL, PHY2_COL, PHY1_COL, PHY0_COL};		
-					
 	// generate PHY-RX module & FIFO 
 	wire [7:0] frame_fifo_rx_fifo_din [0:3];
 	wire [3:0] frame_fifo_rx_fifo_wren;
@@ -167,7 +85,7 @@ module TOP_L2_SWITCH(
 
 	/* MAC Decoder */
 	/* Header FIFO signal */
-	wire [111:0] h_fifo_din; // TODO [] : check bit width
+	wire [114:0] h_fifo_din; // TODO [] : check bit width
 	wire h_fifo_full; 
 	wire h_fifo_wren;
 	/* Body FIFO signal */	
@@ -220,7 +138,15 @@ module TOP_L2_SWITCH(
 	);
 	
 	/* Header-FIFO */
-	// TODO [] : implement header fifo
+	wire [114:0] h_fifo_dout;
+	wire h_fifo_rden;
+	HEADER_FIFO header_fifo(
+		.rst(rst),
+		.di(h_fifo_din), .clk(clk), .we(h_fifo_wren),
+		.do(h_fifo_dout), .re(h_fifo_rden),
+		.empty_flag(h_fifo_empty),
+		.full_flag(h_fifo_full)
+	);
 	
 	/* Body-FIFO */
 	wire [7:0] frame_fifo_mac_b_fifo_do;
@@ -288,7 +214,7 @@ module TOP_L2_SWITCH(
 	for (i = 0; i < PHY_NUM; i = i + 1)
 	begin : PHY_TX_INTERFACE
 		PACKET_FIFO frame_fifo_tx (
-			.rst(rst_n),
+			.rst(rst),
 			.di(frame_fifo_tx_di),
 			.clkw(clk),
 			.we(frame_fifo_tx_we[i]),
@@ -304,8 +230,7 @@ module TOP_L2_SWITCH(
 			.EOD_out(frame_fifo_tx_EOD_out[i])		
 		);
 		PHY_TX #(
-   			.IFG(96), // Interframe Gap
-    		.CRC32_RES(64'hC704_DD7B) // CRC32-residue
+   			.IFG(96) // Interframe Gap
 		) phy_tx ( 
 			.arst_n(arst_n),
 			// FIFO signal
@@ -318,7 +243,7 @@ module TOP_L2_SWITCH(
 			// SNI signal
 			.TXC(PHY_TXC[i]),
 			.COL(PHY_COL[i]),
-			.CRS(PHY_COL[i]),
+			.CRS(PHY_CRS[i]),
 			.TXD(PHY_TXD[i]),
 			.TXEN(PHY_TXEN[i])
 		);

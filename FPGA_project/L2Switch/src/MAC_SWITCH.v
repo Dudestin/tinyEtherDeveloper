@@ -137,10 +137,10 @@ module MAC_SWITCH #(
 	
 	wire table_match;
 	
-	cam_bram # (
+	cam # (
 		.DATA_WIDTH(48), // MAC LENGTH
 		.ADDR_WIDTH(MAC_TABLE_ADDR_LEN),  // 3(EACH PORT TABLE) + 2(PORT)
-		// .CAM_STYLE("BRAM"),
+		.CAM_STYLE("SRL"),
 		.SLICE_WIDTH(4)
 	) MAC_cam (
 		.clk(clk),

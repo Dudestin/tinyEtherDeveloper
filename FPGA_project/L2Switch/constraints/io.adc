@@ -7,41 +7,41 @@ set_pin_assignment {arst_n} { LOCATION = K16; }		##USER_KEY
 #set_pin_assignment {RGB_LED[2]} { LOCATION = P13;  }	##LED_B, P13
 
 ## PHY0
-set_pin_assignment {PHY0_RST} {LOCATION = C9;}
-set_pin_assignment {PHY0_TXC} {LOCATION = N5;}
-set_pin_assignment {PHY0_TXEN} {LOCATION = M4;}
-set_pin_assignment {PHY0_TXD} {LOCATION = P4;}
-set_pin_assignment {PHY0_RXD} {LOCATION = P5;}
-set_pin_assignment {PHY0_RXC} {LOCATION = N4;}
-set_pin_assignment {PHY0_CRS} {LOCATION = T5;}
-set_pin_assignment {PHY0_COL} {LOCATION = M3;}
+set_pin_assignment {PHY_RST[0]} {LOCATION = C9;}
+set_pin_assignment {PHY_TXC[0]} {LOCATION = N5;}
+set_pin_assignment {PHY_TXEN[0]} {LOCATION = M4;}
+set_pin_assignment {PHY_TXD[0]} {LOCATION = P4;}
+set_pin_assignment {PHY_RXD[0]} {LOCATION = P5;}
+set_pin_assignment {PHY_RXC[0]} {LOCATION = N4;}
+set_pin_assignment {PHY_CRS[0]} {LOCATION = T5;}
+set_pin_assignment {PHY_COL[0]} {LOCATION = M3;}
 
 ## PHY1
-set_pin_assignment {PHY1_RST} {LOCATION = A5;}
-set_pin_assignment {PHY1_TXC} {LOCATION = A3;}  # now, pin has mulfactured
-set_pin_assignment {PHY1_TXEN} {LOCATION = A4;} ## hoge
-set_pin_assignment {PHY1_TXD} {LOCATION = D6;}  ## hoge
-set_pin_assignment {PHY1_RXD} {LOCATION = C3;}
-set_pin_assignment {PHY1_RXC} {LOCATION = C6;}
-set_pin_assignment {PHY1_CRS} {LOCATION = C7;}
-set_pin_assignment {PHY1_COL} {LOCATION = D5;}
+set_pin_assignment {PHY_RST[1]} {LOCATION = A5;}
+set_pin_assignment {PHY_TXC[1]} {LOCATION = A3;}  # now, pin has mulfactured
+set_pin_assignment {PHY_TXEN[1]} {LOCATION = A4;} ## hoge
+set_pin_assignment {PHY_TXD[1]} {LOCATION = D6;}  ## hoge
+set_pin_assignment {PHY_RXD[1]} {LOCATION = C3;}
+set_pin_assignment {PHY_RXC[1]} {LOCATION = C6;}
+set_pin_assignment {PHY_CRS[1]} {LOCATION = C7;}
+set_pin_assignment {PHY_COL[1]} {LOCATION = D5;}
 
 ## PHY2
-set_pin_assignment {PHY2_RST} {LOCATION = A6;}
-set_pin_assignment {PHY2_TXC} {LOCATION = A14;}
-set_pin_assignment {PHY2_TXEN} {LOCATION = B14;}
-set_pin_assignment {PHY2_TXD} {LOCATION = B8;}
-set_pin_assignment {PHY2_RXD} {LOCATION = B15;}
-set_pin_assignment {PHY2_RXC} {LOCATION = C8;}
-set_pin_assignment {PHY2_CRS} {LOCATION = A12;}
-set_pin_assignment {PHY2_COL} {LOCATION = A7;}
+set_pin_assignment {PHY_RST[2]} {LOCATION = A6;}
+set_pin_assignment {PHY_TXC[2]} {LOCATION = A14;}
+set_pin_assignment {PHY_TXEN[2]} {LOCATION = B14;}
+set_pin_assignment {PHY_TXD[2]} {LOCATION = B8;}
+set_pin_assignment {PHY_RXD[2]} {LOCATION = B15;}
+set_pin_assignment {PHY_RXC[2]} {LOCATION = C8;}
+set_pin_assignment {PHY_CRS[2]} {LOCATION = A12;}
+set_pin_assignment {PHY_COL[2]} {LOCATION = A7;}
 
 ## PHY3
-set_pin_assignment {PHY3_RST} {LOCATION = B16;}
-set_pin_assignment {PHY3_TXC} {LOCATION = E16;}
-set_pin_assignment {PHY3_TXEN} {LOCATION = C15;}
-set_pin_assignment {PHY3_TXD} {LOCATION = C11;}
-set_pin_assignment {PHY3_RXD} {LOCATION = F16;}
-set_pin_assignment {PHY3_RXC} {LOCATION = B12;}
-set_pin_assignment {PHY3_CRS} {LOCATION = C10;}
-set_pin_assignment {PHY3_COL} {LOCATION = A11;}
+set_pin_assignment {PHY_RST[3]} {LOCATION = B16;}
+set_pin_assignment {PHY_TXC[3]} {LOCATION = E16;}
+set_pin_assignment {PHY_TXEN[3]} {LOCATION = C15;}
+set_pin_assignment {PHY_TXD[3]} {LOCATION = C11;}
+set_pin_assignment {PHY_RXD[3]} {LOCATION = F16;}
+set_pin_assignment {PHY_RXC[3]} {LOCATION = B12;}
+set_pin_assignment {PHY_CRS[3]} {LOCATION = C10;}
+set_pin_assignment {PHY_COL[3]} {LOCATION = A11;}
