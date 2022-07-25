@@ -3,9 +3,9 @@
 // RX : PHY1, TX : PHY3
 
 module TOP_LoopbackTest(
-	input wire CLK_IN,
-	input wire RST_N,
-	output wire [2:0]RGB_LED,
+	input wire clk,
+	input wire arst_n,
+	output wire [2:0] RGB_LED,
 		
 	// PHY1 
 	output wire PHY1_RST,
