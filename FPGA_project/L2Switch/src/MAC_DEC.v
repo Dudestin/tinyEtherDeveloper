@@ -131,18 +131,48 @@ module MAC_DEC(
 						   (phy_id_reg == 2'b10) ? i2_fifo_del :
 						   (phy_id_reg == 2'b11) ? i3_fifo_del : 1'bz;
 						   
-	// DEMUX by phy_id_reg
+	// DEMUX input fifo read_enable by phy_id_reg
 	wire i_fifo_rden;
 	reg  i_fifo_rden_reg;
 	assign i_fifo_rden = i_fifo_rden_reg;
 	always @*
 	begin
 		case (phy_id_reg)
-			2'b00 : i0_fifo_rden = i_fifo_rden;
-			2'b01 : i1_fifo_rden = i_fifo_rden;
-			2'b10 : i2_fifo_rden = i_fifo_rden;
-			2'b11 : i3_fifo_rden = i_fifo_rden;
-			default : ;
+			2'b00 : 
+				begin				
+					i0_fifo_rden = i_fifo_rden;
+					i1_fifo_rden = 1'b0;
+					i2_fifo_rden = 1'b0;
+					i3_fifo_rden = 1'b0;
+				end
+			2'b01 : 
+				begin
+					i0_fifo_rden = 1'b0;
+					i1_fifo_rden = i_fifo_rden;
+					i2_fifo_rden = 1'b0;
+					i3_fifo_rden = 1'b0;
+				end
+			2'b10 :
+				begin
+					i0_fifo_rden = 1'b0;
+					i1_fifo_rden = 1'b0;
+					i2_fifo_rden = i_fifo_rden;
+					i3_fifo_rden = 1'b0;
+				end
+			2'b11 :
+				begin
+					i0_fifo_rden = 1'b0;
+					i1_fifo_rden = 1'b0;
+					i2_fifo_rden = 1'b0;
+					i3_fifo_rden = i_fifo_rden;
+				end
+			default : 
+				begin
+					i0_fifo_rden = 1'b0;
+					i1_fifo_rden = 1'b0;
+					i2_fifo_rden = 1'b0;
+					i3_fifo_rden = 1'b0;				
+				end
 		endcase		
 	end
 
