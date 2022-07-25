@@ -1,5 +1,5 @@
 // Decode PHY_FIFO data & store HEADER, PAYLOAD to DISTINCT FIFO
-// TODO [] : CRC check 
+// TODO [x] : CRC check 
 
 module MAC_DEC(
 	clk,
@@ -82,7 +82,7 @@ module MAC_DEC(
 	output wire h_fifo_wren;	
 	reg [111:0] h_fifo_din_reg;
 	reg h_fifo_wren_reg;
-	assign h_fifo_din = {h_fifo_din_reg, phy_id_reg, fcs_correct_reg};	
+	assign h_fifo_din = {fcs_correct_reg, phy_id_reg, h_fifo_din_reg};	
 	assign h_fifo_wren= h_fifo_wren_reg;
 			
 	// BODY-FIFO
@@ -242,7 +242,8 @@ module MAC_DEC(
 			
 			else if (STATE == S_FCS) // check FCS section
 			begin
-				fcs_correct_reg <= (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;			
+				fcs_correct_reg <= (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;
+				crc_rst_reg     <= 1'b1; // reset crc module		
 				h_fifo_wren_reg <= 1'b1; // write to header fifo	
 				STATE           <= S_END;
 			end
@@ -250,7 +251,7 @@ module MAC_DEC(
 			else if (STATE == S_END)
 			begin
 				cnt_reg         <= 4'b0;
-				crc_rst_reg     <= 1'b1;
+				crc_rst_reg     <= 1'b0;
 				crc_en_reg      <= 1'b0;
 				phy_id_reg      <= 1'b0;
 				i_fifo_rden_reg <= 1'b0;
