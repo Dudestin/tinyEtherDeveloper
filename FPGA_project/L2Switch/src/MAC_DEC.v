@@ -75,6 +75,12 @@ module MAC_DEC(
 	output reg i3_fifo_rden;
 	input wire i3_fifo_del;
 	
+	// select id by schedular
+	reg [1:0] phy_id_reg;
+
+	// FCS section is valid
+	reg fcs_correct_reg;
+
 	// HEADER-FIFO
 	// h_fifo_din = SRC_MAC[47:0] + DST_MAC[47:0] + TYPE[15:0] + (PORT[1:0] + FCS_CORRECT[0:0])
 	output wire [114:0] h_fifo_din;	
@@ -108,9 +114,6 @@ module MAC_DEC(
 	// general purpose counter
 	reg [3:0] cnt_reg;
 
-	// select id by schedular
-	reg [1:0] phy_id_reg;
-	
 	wire [3:0] i_fifo_aempty;
 	assign i_fifo_aempty = {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
 	
@@ -185,9 +188,8 @@ module MAC_DEC(
 	crc crc_impl(.data_in(crc_data_in),
   				.crc_en(crc_en_reg),
   				.crc_out(crc_out),
- 				.rst(arst_n | crc_rst_reg),
-  				.clk(clk));
-	reg fcs_correct_reg;
+ 				.rst(~arst_n | crc_rst_reg),
+  				.clk(clk));	
 
 	always @(posedge clk or negedge arst_n)
 	begin
@@ -208,10 +210,12 @@ module MAC_DEC(
 		end
 		else
 		begin
-			crc_en_reg <= 1'b0;
+			i_fifo_rden_reg <= 1'b0;
+			crc_en_reg      <= 1'b0;
 
 			if (STATE == S_IDLE)
 			begin
+				crc_rst_reg <= 1'b1;
 				// Require h_fifo has space & b_fifo_afull has space able to store 1,514B
 				// This assumption will achieve circuit simplicity.
 				if (~h_fifo_full & ~b_fifo_afull)
@@ -229,13 +233,18 @@ module MAC_DEC(
 			
 			else if (STATE == S_HEADER)
 			begin
+				crc_rst_reg <= 1'b0;
 				// TODO[x] : if reach DELIMITER, GO TO S_END
 				// TODO[x] : if i_fifo EMPTY, STOLE & wait
 				if (i_fifo_del == 1'b1) // end of FRAME, something wrong happend, go to S_END
-					STATE <= S_END; 
+				begin				
+					i_fifo_rden_reg <= 1'b1;
+					STATE <= S_END;
+				end
 				else if (i_fifo_empty) 
 				begin
-					// stole
+					/* stole */
+					i_fifo_rden_reg <= 1'b0;
 				end
 				else // data has provided, store HEADER to h_fifo.
 				begin
@@ -253,7 +262,8 @@ module MAC_DEC(
 				if (i_fifo_empty)
 				begin
 					/* stole */ 
-					// i_fifo_rden_reg <= 1'b0;
+					crc_en_reg      <= 1'b0;
+					i_fifo_rden_reg <= 1'b0;
 					b_fifo_wren_reg <= 1'b0;
 				end
 				else    // if data has provided, store to b_fifo.
@@ -264,7 +274,7 @@ module MAC_DEC(
 					b_fifo_din_reg  <= i_fifo_dout;
 					if (i_fifo_del == 1'b1) // end of frame
 					begin
-						b_fifo_del_reg  <= 1'b1;  // write delimiter to body fifo
+						b_fifo_del_reg  <= 1'b1;  // write delimiter to body FIFO
 						STATE           <= S_FCS;
 					end
 				end
@@ -272,16 +282,18 @@ module MAC_DEC(
 			
 			else if (STATE == S_FCS) // check FCS section
 			begin
-				fcs_correct_reg <= (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;
-				crc_rst_reg     <= 1'b1; // reset crc module		
-				h_fifo_wren_reg <= 1'b1; // write to header fifo	
+				h_fifo_wren_reg <= 1'b1;  // write to header FIFO
+				b_fifo_wren_reg <= 1'b0;
+				b_fifo_del_reg  <= 1'b0;
+				crc_en_reg      <= 1'b0;
+				fcs_correct_reg <= (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;	
 				STATE           <= S_END;
 			end
 			
 			else if (STATE == S_END)
 			begin
 				cnt_reg         <= 4'b0;
-				crc_rst_reg     <= 1'b0;
+				crc_rst_reg     <= 1'b1;
 				crc_en_reg      <= 1'b0;
 				phy_id_reg      <= 1'b0;
 				i_fifo_rden_reg <= 1'b0;

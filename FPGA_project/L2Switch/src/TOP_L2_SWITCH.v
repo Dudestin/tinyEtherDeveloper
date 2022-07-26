@@ -18,8 +18,8 @@ module TOP_L2_SWITCH(
 	wire clk;
 	
 	// Sync Reset
-	wire rst_n;
-	wire rst = ~rst_n;
+	wire rst_n;         // Active-Low
+	wire rst = ~rst_n;  // Active-High
 	sync_2ff sync_2ff_impl (.clk(clk), .din(arst_n), .dout(rst_n));	
 
 	// 100 MHz system clock
@@ -36,6 +36,9 @@ module TOP_L2_SWITCH(
 	input  wire [3:0] PHY_RXC;
 	input  wire [3:0] PHY_CRS;
 	input  wire [3:0] PHY_COL;
+
+	// PHY Reset
+	assign PHY_RST = {rst_n, rst_n, rst_n, rst_n}; // Active-Low
 
 	// generate PHY-RX module & FIFO 
 	wire [7:0] frame_fifo_rx_fifo_din [0:3];

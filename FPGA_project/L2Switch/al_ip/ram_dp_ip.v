@@ -9,7 +9,7 @@
  ** TD version	:	4.4.433
 \************************************************************/
 
-`timescale 1ns / 1ps
+// `timescale 1ns / 1ps
 
 module ram_dp_ip # (
 	parameter DATA_WIDTH = 32,
