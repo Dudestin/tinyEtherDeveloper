@@ -1,4 +1,6 @@
-module TOP_L2_SWITCH(
+module TOP_L2_SWITCH #(
+	parameter HEADER_DWIDTH = 128
+)(
 	CLK_IN,
 	arst_n,
 	
@@ -11,7 +13,7 @@ module TOP_L2_SWITCH(
 	PHY_CRS,
 	PHY_COL		
 );
-	parameter PHY_NUM = 4;
+	localparam PHY_NUM = 4;
 	
 	input wire CLK_IN; // 24 MHz
 	input wire arst_n;	
@@ -23,10 +25,11 @@ module TOP_L2_SWITCH(
 	sync_2ff sync_2ff_impl (.clk(clk), .din(arst_n), .dout(rst_n));	
 
 	// 100 MHz system clock
-	// TODO [] : check
-	wire raw_clk;
-	// clk_bufg clk_bufg_impl (.i(raw_clk), .o(clk));
-	clk_bufg clk_bufg_impl (.i(CLK_IN), .o(clk));
+	pll_clk100M pll_impl(
+		.refclk(CLK_IN),
+		.reset(rst),
+		.extlock(),
+		.clk0_out(clk));
 	
 	output wire [3:0] PHY_RST;
 	output wire [3:0] PHY_TXEN;
@@ -67,7 +70,7 @@ module TOP_L2_SWITCH(
 			.CRS(PHY_CRS[i]),
 			.RXD(PHY_RXD[i])	
 		);
-		PACKET_FIFO frame_fifo_rx(
+		FRAME_FIFO frame_fifo_rx(
 			.rst(rst),
 			.di(frame_fifo_rx_fifo_din[i]),
 			.clkw(PHY_RXC[i]),
@@ -88,7 +91,7 @@ module TOP_L2_SWITCH(
 
 	/* MAC Decoder */
 	/* Header FIFO signal */
-	wire [114:0] h_fifo_din; // TODO [] : check bit width
+	wire [HEADER_DWIDTH-1:0] h_fifo_din; // TODO [x] : check bit width
 	wire h_fifo_full; 
 	wire h_fifo_wren;
 	/* Body FIFO signal */	
@@ -104,6 +107,7 @@ module TOP_L2_SWITCH(
 		.i0_fifo_dout(frame_fifo_rx_fifo_dout[0]),
 		.i0_fifo_empty(frame_fifo_rx_empty_flag[0]),
 		.i0_fifo_aempty(frame_fifo_rx_aempty_flag[0]),
+		.i0_fifo_afull(frame_fifo_rx_afull_flag[0]),
 		.i0_fifo_rden(frame_fifo_rx_fifo_rden[0]),
 		.i0_fifo_del(frame_fifo_rx_EOD_out[0]),
 
@@ -111,6 +115,7 @@ module TOP_L2_SWITCH(
 		.i1_fifo_dout(frame_fifo_rx_fifo_dout[1]),
 		.i1_fifo_empty(frame_fifo_rx_empty_flag[1]),
 		.i1_fifo_aempty(frame_fifo_rx_aempty_flag[1]),
+		.i1_fifo_afull(frame_fifo_rx_afull_flag[1]),		
 		.i1_fifo_rden(frame_fifo_rx_fifo_rden[1]),
 		.i1_fifo_del(frame_fifo_rx_EOD_out[1]),
 
@@ -118,6 +123,7 @@ module TOP_L2_SWITCH(
 		.i2_fifo_dout(frame_fifo_rx_fifo_dout[2]),
 		.i2_fifo_empty(frame_fifo_rx_empty_flag[2]),
 		.i2_fifo_aempty(frame_fifo_rx_aempty_flag[2]),
+		.i2_fifo_afull(frame_fifo_rx_afull_flag[2]),		
 		.i2_fifo_rden(frame_fifo_rx_fifo_rden[2]),
 		.i2_fifo_del(frame_fifo_rx_EOD_out[2]),
 
@@ -125,6 +131,7 @@ module TOP_L2_SWITCH(
 		.i3_fifo_dout(frame_fifo_rx_fifo_dout[3]),
 		.i3_fifo_empty(frame_fifo_rx_empty_flag[3]),
 		.i3_fifo_aempty(frame_fifo_rx_aempty_flag[3]),
+		.i3_fifo_afull(frame_fifo_rx_afull_flag[3]),		
 		.i3_fifo_rden(frame_fifo_rx_fifo_rden[3]),
 		.i3_fifo_del(frame_fifo_rx_EOD_out[3]),
 			
@@ -141,11 +148,13 @@ module TOP_L2_SWITCH(
 	);
 	
 	/* Header-FIFO */
-	wire [114:0] h_fifo_dout;
+	wire [HEADER_DWIDTH-1:0] h_fifo_dout;
 	wire h_fifo_rden;
-	HEADER_FIFO header_fifo(
+	HEADER_FIFO #(
+		.WIDTH(128)
+	) header_fifo(
 		.rst(rst),
-		.di(h_fifo_din), .clk(clk), .we(h_fifo_wren),
+		.di(h_fifo_din),  .clk(clk), .we(h_fifo_wren),
 		.do(h_fifo_dout), .re(h_fifo_rden),
 		.empty_flag(h_fifo_empty),
 		.full_flag(h_fifo_full)
@@ -156,7 +165,7 @@ module TOP_L2_SWITCH(
 	wire frame_fifo_mac_b_fifo_re;
 	wire frame_fifo_mac_b_empty_flag;
 	wire frame_fifo_mac_b_EOD_out;
-	PACKET_FIFO frame_fifo_mac_b_fifo(
+	NEW_PACKET_FIFO packet_fifo_mac_b_fifo(
 		.rst(rst),
 		.di(b_fifo_din),
 		.clkw(clk),
@@ -203,7 +212,9 @@ module TOP_L2_SWITCH(
 		.p2_fifo_afull(frame_fifo_tx_afull_flag[2]),
 		.p2_fifo_wren(frame_fifo_tx_we[2]),		
 		.p3_fifo_afull(frame_fifo_tx_afull_flag[3]),
-		.p3_fifo_wren(frame_fifo_tx_we[3])
+		.p3_fifo_wren(frame_fifo_tx_we[3]),
+		
+		.mask_port(4'b0)
 	);
 	
 	// PHY-TX module & FIFO
@@ -216,7 +227,7 @@ module TOP_L2_SWITCH(
 	generate
 	for (i = 0; i < PHY_NUM; i = i + 1)
 	begin : PHY_TX_INTERFACE
-		PACKET_FIFO frame_fifo_tx (
+		FRAME_FIFO frame_fifo_tx (
 			.rst(rst),
 			.di(frame_fifo_tx_di),
 			.clkw(clk),
@@ -252,5 +263,4 @@ module TOP_L2_SWITCH(
 		);
 	end	
 	endgenerate
-	
 endmodule

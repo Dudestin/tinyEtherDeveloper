@@ -40,10 +40,6 @@ localparam S_IDLE = 3'b000,
        S_COL      = 3'b100,
        S_END      = 3'b110;	
 
-// rand value generater
-wire [31:0] rand_value;
-m_seq_32 randgen(.clk(TXC), .reset(arst_n), . mseq32(rand_value));
-
 // used in all state
 reg TXD_reg;
 reg TXEN_reg;
@@ -54,6 +50,10 @@ reg [7:0] cnt_reg;
 
 // S_COL : random counter
 reg [7:0] rand_cnt_reg;
+
+// rand value generater
+wire [31:0] rand_value;
+m_seq_32 randgen(.clk(TXC), .reset(arst_n), .mseq32(rand_value));
 
 always @(posedge TXC or negedge arst_n)
 begin
@@ -111,8 +111,8 @@ begin
             	cnt_reg   <= 8'b0;
             	fifo_rden <= 1'b1;
                 if (fifo_EOD_out)    // detect end of data, go to S_FCS.                                    
-                    STATE <= S_FCS;
-                else if (fifo_empty) // no remain data, go to S_END.
+                    STATE <= S_END;  // ** now, Not Implemented S_FCS. **
+                else if (fifo_empty) // unexpected situation, no remain data, go to S_END.
                 	STATE <= S_END;
             end
         end
@@ -138,7 +138,7 @@ begin
         // wait to secure IFG, then go to S_IDLE
         else if (STATE == S_END)
         begin
-            cnt_reg     <= cnt_reg + 8'b1;
+            cnt_reg     <= cnt_reg + 1'b1;
             if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
             begin
 				cnt_reg  <= 8'b0;

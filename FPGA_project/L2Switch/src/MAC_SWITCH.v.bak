@@ -4,26 +4,22 @@
 
 module MAC_SWITCH #(
 	// MAC table size 2^PORT_TABLE_SIZE each PORT
-	parameter PORT_TABLE_ADDR_LEN = 3,
-	parameter HEADER_DWIDTH = 128
+	parameter PORT_TABLE_ADDR_LEN = 3 
 	)(
 		clk,
 		arst_n,
 
-		/* INPUT : Header FIFO */
 		h_fifo_dout,
 		h_fifo_rden,
 		h_fifo_empty,
 
-		/* INPUT : Body FIFO */
 		b_fifo_dout,
 		b_fifo_rden,
 		b_fifo_empty,
 		b_fifo_del,
 
-		/* OUTPUT : PHY-TX FIFO */
-		o_fifo_din, // common for all PHY-TX FIFO
-		o_fifo_del, // common for all PHY-TX FIFO
+		o_fifo_din,
+		o_fifo_del,
 		p0_fifo_afull,
 		p0_fifo_wren,
 		p1_fifo_afull,
@@ -31,9 +27,7 @@ module MAC_SWITCH #(
 		p2_fifo_afull,
 		p2_fifo_wren,
 		p3_fifo_afull,
-		p3_fifo_wren,
-		
-		mask_port // 1 means brock the port
+		p3_fifo_wren
 	);
 	localparam MAC_TABLE_ADDR_LEN = (PORT_TABLE_ADDR_LEN + 2);
 	localparam MAC_TABLE_SIZE = 2**MAC_TABLE_ADDR_LEN;
@@ -45,7 +39,7 @@ module MAC_SWITCH #(
 	sync_2ff sync_2ff_rst_n (.clk(clk), .din(arst_n), .dout(rst_n));
 
 	// HEADER_FIFO
-	input  wire [HEADER_DWIDTH-1:0] h_fifo_dout;
+	input  wire [114:0] h_fifo_dout;
 	reg h_fifo_rden_reg;
 	output wire h_fifo_rden;
 	assign h_fifo_rden = h_fifo_rden_reg;
@@ -66,14 +60,6 @@ module MAC_SWITCH #(
 	output wire o_fifo_del;
 	reg o_fifo_del_reg;
 	assign o_fifo_del = o_fifo_del_reg;
-	
-	// Control Signal, usually came from a processor, to implement STP.
-	input wire [3:0] mask_port; // 0 means passage, 1 means blocking.
-	wire [3:0] mask_port_synced;
-	// mask_port is one-hot encoded, so can apply synchronizers.
-	// this method archiv each one can work on asynchronously
-	vec_sync_2ff #(.WIDTH(4)) 
-		sync_mask_port(.clk(clk), .din(mask_port), .dout(mask_port_synced));
 
 	/* fifo write enable signals */
 	reg [3:0] o_fifo_wren_reg;
@@ -98,38 +84,33 @@ module MAC_SWITCH #(
 	assign fifo_afull_list = {p3_fifo_afull, p2_fifo_afull, p1_fifo_afull, p0_fifo_afull};
 
 	/* header signal assign */
-	reg  [HEADER_DWIDTH-1:0] header_fetched;
+	wire [0:0]  h_FRAME_VALID;
+	assign h_FRAME_VALID = h_fifo_dout[114:114];	
 
-	wire [0:0]  h_FRAME_VALID; // FCS is correct
-	assign h_FRAME_VALID = header_fetched[115:115];	
-	
-	wire [0:0]  h_IS_CTRL_FRAME; // is control frame (i.e. BPDS, PAUSE), need to process on CPU.
-	assign h_IS_CTRL_FRAME = header_fetched[114:114];
-
-	wire [1:0]  h_PORT;	       // the frame came PHY
-	assign h_PORT    = header_fetched[113:112];
+	wire [1:0]  h_PORT;	
+	assign h_PORT    = h_fifo_dout[113:112];
 
 	wire [47:0] h_DST_MAC;
-	assign h_DST_MAC = header_fetched[111:64];
+	assign h_DST_MAC = h_fifo_dout[111:64];
 
 	wire [47:0] h_SRC_MAC;
-	assign h_SRC_MAC = header_fetched[63:16];
+	assign h_SRC_MAC = h_fifo_dout[63:16];
 
-	wire [15:0] h_TYPE;        // TYPE section of Ethernet II Frame
-	assign h_TYPE    = header_fetched[15:0];	
+	wire [15:0] h_TYPE;
+	assign h_TYPE    = h_fifo_dout[15:0];	
 
 	/* STATE MACHINE */
 	reg [2:0] STATE;
-	localparam S_IDLE = 3'b000,
-		S_H_FETCH      = 3'b001,
-		S_SRC_SEARCH   = 3'b010,
-		S_SRC_REGISTER = 3'b011,
-		S_DST_SEARCH   = 3'b100,
-		S_TX_HEADER    = 3'b101,
-		S_TX_PAYLOAD   = 3'b110,
+	localparam S_IDLE    = 3'b000,
+		S_SRC_SEARCH   = 3'b001,
+		S_SRC_REGISTER = 3'b010,
+		S_DST_SEARCH   = 3'b011,
+		S_TX_HEADER    = 3'b100,
+		S_TX_PAYLOAD   = 3'b101,
+		S_WAIT         = 3'b110, // not used
 		S_END          = 3'b111;
 
-	/* MAC Table implemented with CAM */
+	/* MAC Table implemented with CAM signal */
 	wire [MAC_TABLE_ADDR_LEN-1:0] table_write_addr;
 	reg  [MAC_TABLE_ADDR_LEN-1:0] table_write_addr_reg;
 	assign table_write_addr = table_write_addr_reg;	
@@ -159,7 +140,7 @@ module MAC_SWITCH #(
 	cam # (
 		.DATA_WIDTH(48), // MAC LENGTH
 		.ADDR_WIDTH(MAC_TABLE_ADDR_LEN),  // 3(EACH PORT TABLE) + 2(PORT)
-		.CAM_STYLE("SRL"), // use Shift Register Implementation.
+		.CAM_STYLE("SRL"),
 		.SLICE_WIDTH(4)
 	) MAC_cam (
 		.clk(clk),
@@ -212,10 +193,10 @@ module MAC_SWITCH #(
 	begin
 		if (rst_n == 1'b0)
 		begin
-			port_cnt[0] <= {(PORT_TABLE_ADDR_LEN){1'b0}};
-			port_cnt[1] <= {(PORT_TABLE_ADDR_LEN){1'b0}};
-			port_cnt[2] <= {(PORT_TABLE_ADDR_LEN){1'b0}};
-			port_cnt[3] <= {(PORT_TABLE_ADDR_LEN){1'b0}}; 
+			port_cnt[0] <= 5'b0;
+			port_cnt[1] <= 5'b0;
+			port_cnt[2] <= 5'b0;
+			port_cnt[3] <= 5'b0; 
 			reset_reg();
 		end
 		else
@@ -223,19 +204,12 @@ module MAC_SWITCH #(
 			if (STATE == S_IDLE)
 			begin
 				cnt_reg <= 5'b0;
-				if (~h_fifo_empty & ~h_IS_CTRL_FRAME) // don't process control frame
-				begin
-					header_fetched <= h_fifo_dout;
-					STATE          <= S_H_FETCH;
-				end
-			end
-
-			else if (STATE == S_H_FETCH)
-			begin
-				if (h_FRAME_VALID)
-					STATE <= S_SRC_SEARCH;
-				else
-					STATE <= S_DST_SEARCH;
+				if (~h_fifo_empty)
+					if (h_FRAME_VALID)
+					// TODO [] : fetch header from FIFO here.
+						STATE <= S_SRC_SEARCH;
+					else
+						STATE <= S_
 			end
 
 			// search SRC_MAC from MAC table to determine need to register.
@@ -266,7 +240,7 @@ module MAC_SWITCH #(
 					table_write_data_reg   <= h_SRC_MAC;
 					table_write_enable_reg <= 1'b1;
 				end
-				else if (~table_write_busy && cnt_reg >= 5'd2) // wait write complete (2 means module latency)
+				else if (~table_write_busy && cnt_reg >= 5'd2) // wait write complete
 				begin
 					STATE <= S_DST_SEARCH;
 					cnt_reg <= 5'b0;
@@ -284,9 +258,9 @@ module MAC_SWITCH #(
 					if (h_FRAME_VALID)   // if frame is not broken.
 					begin
 						if (table_match) // if exists, cast the frame
-							match_port_reg <= match_port & ~fifo_afull_list & ~mask_port_synced;
+							match_port_reg <= match_port & ~fifo_afull_list;
 						else             // if not found, broadcast the frame
-							match_port_reg <= 4'b1111 & ~fifo_afull_list & ~(1 << h_PORT) & ~mask_port_synced;
+							match_port_reg <= 4'b1111 & ~fifo_afull_list & ~(1 << h_PORT);
 						end
 					else
 					begin // if frame is broken, destroy (don't send to any FIFO) the frame
@@ -346,7 +320,7 @@ module MAC_SWITCH #(
 				else if (b_fifo_empty) // if fifo is empty, stole process
 				begin
 					b_fifo_rden_reg <= 1'b0;
-					o_fifo_wren_reg <= 4'b0;
+					o_fifo_wren_reg <= 4'b0;		
 				end
 			end	
 

@@ -1,44 +1,50 @@
 // Decode PHY_FIFO data & store HEADER, PAYLOAD to DISTINCT FIFO
 // TODO [x] : CRC check 
 
-module MAC_DEC(
+module MAC_DEC #(
+	parameter HEADER_DWIDTH = 128
+)(
 	clk,
 	arst_n,
 	
-	// PHY0-FIFO
+	// INBOUND : PHY0-FIFO
 	i0_fifo_dout,
 	i0_fifo_empty,
 	i0_fifo_aempty,
+	i0_fifo_afull,
 	i0_fifo_rden,
 	i0_fifo_del,
 
-	// PHY1-FIFO	
+	// INBOUND : PHY1-FIFO	
 	i1_fifo_dout,
 	i1_fifo_empty,
 	i1_fifo_aempty,
+	i1_fifo_afull,	
 	i1_fifo_rden,
 	i1_fifo_del,
 
-	// PHY2-FIFO
+	// INBOUND : PHY2-FIFO
 	i2_fifo_dout,
 	i2_fifo_empty,
 	i2_fifo_aempty,
+	i2_fifo_afull,	
 	i2_fifo_rden,
 	i2_fifo_del,
 
-	// PHY3-FIFO
+	// INBOUND : PHY3-FIFO
 	i3_fifo_dout,
 	i3_fifo_empty,
 	i3_fifo_aempty,
+	i3_fifo_afull,	
 	i3_fifo_rden,
-	i3_fifo_del,	
+	i3_fifo_del,
 			
-	// HEADER-FIFO	
+	// OUTBOUND : HEADER_FIFO	
 	h_fifo_din,
 	h_fifo_full,
 	h_fifo_wren,
 	
-	// BODY-FIFO 
+	// OUTBOUND : BODY_FIFO 
  	b_fifo_din,
  	b_fifo_afull,
  	b_fifo_wren,
@@ -51,6 +57,7 @@ module MAC_DEC(
 	input wire [7:0] i0_fifo_dout;
 	input wire i0_fifo_empty;
 	input wire i0_fifo_aempty;
+	input wire i0_fifo_afull;	
 	output reg i0_fifo_rden;
 	input wire i0_fifo_del;
 
@@ -58,6 +65,7 @@ module MAC_DEC(
 	input wire [7:0] i1_fifo_dout;
 	input wire i1_fifo_empty;
 	input wire i1_fifo_aempty;
+	input wire i1_fifo_afull;	
 	output reg i1_fifo_rden;
 	input wire i1_fifo_del;	
 
@@ -65,6 +73,7 @@ module MAC_DEC(
 	input wire [7:0] i2_fifo_dout;
 	input wire i2_fifo_empty;
 	input wire i2_fifo_aempty;
+	input wire i2_fifo_afull;	
 	output reg i2_fifo_rden;
 	input wire i2_fifo_del;
 
@@ -72,23 +81,29 @@ module MAC_DEC(
 	input wire [7:0] i3_fifo_dout;
 	input wire i3_fifo_empty;
 	input wire i3_fifo_aempty;
+	input wire i3_fifo_afull;
 	output reg i3_fifo_rden;
 	input wire i3_fifo_del;
 	
-	// select id by schedular
+	// select phy id by schedular
 	reg [1:0] phy_id_reg;
 
 	// FCS section is valid
 	reg fcs_correct_reg;
 
 	// HEADER-FIFO
-	// h_fifo_din = SRC_MAC[47:0] + DST_MAC[47:0] + TYPE[15:0] + (PORT[1:0] + FCS_CORRECT[0:0])
-	output wire [114:0] h_fifo_din;	
+	// h_fifo_din[HEADER_DWIDTH-1:0] = {RESERVED[11:0], FCS_CORRECT[0:0], is_CTRL_FRAME[0:0], PORT[1:0], SRC_MAC[47:0], DST_MAC[47:0], TYPE[15:0]}
+	output wire [HEADER_DWIDTH-1:0] h_fifo_din;	
 	input  wire h_fifo_full;
 	output wire h_fifo_wren;	
 	reg [111:0] h_fifo_din_reg;
 	reg h_fifo_wren_reg;
-	assign h_fifo_din = {fcs_correct_reg, phy_id_reg, h_fifo_din_reg};	
+	// ctrl frame should be processed by CPU.
+	localparam integer BPDS_ADDR  = 48'h01_80_C2_00_00_00;
+	localparam integer PAUSE_ADDR = 48'h01_80_C2_00_00_01;
+	wire is_ctrl_frame = (h_fifo_din_reg[63:16] == BPDS_ADDR)? 1'b1 : 
+					     (h_fifo_din_reg[63:16] == PAUSE_ADDR) ? 1'b1 : 1'b0;
+	assign h_fifo_din = {12'b0, fcs_correct_reg, is_ctrl_frame, phy_id_reg, h_fifo_din_reg};	
 	assign h_fifo_wren= h_fifo_wren_reg;
 			
 	// BODY-FIFO
@@ -116,6 +131,9 @@ module MAC_DEC(
 
 	wire [3:0] i_fifo_aempty;
 	assign i_fifo_aempty = {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
+	
+	wire [3:0] i_fifo_afull;
+	assign i_fifo_afull  = {i3_fifo_afull , i2_fifo_afull , i1_fifo_afull , i0_fifo_afull };
 	
 	// MUX by phy_id_reg
 	wire [7:0] i_fifo_dout;
@@ -221,12 +239,22 @@ module MAC_DEC(
 				if (~h_fifo_full & ~b_fifo_afull)
 				begin
 				 	STATE <= S_HEADER;
-					casex (~i_fifo_aempty) // simple schedular
-						4'bxxx1 : phy_id_reg <= 2'b00;
-						4'bxx10 : phy_id_reg <= 2'b01;
-						4'bx100 : phy_id_reg <= 2'b10;
-						4'b1000 : phy_id_reg <= 2'b11;
-						default : STATE <= S_IDLE;
+				 	/* simple scheduler 
+				 	   a PHY-RX FIFO is also full, it has high priority in ascending order on phy_id */
+					casex (~i_fifo_aempty)
+						4'bxxx1 : phy_id_reg <= 2'd0;
+						4'bxx10 : phy_id_reg <= 2'd1;
+						4'bx100 : phy_id_reg <= 2'd2;
+						4'b1000 : phy_id_reg <= 2'd3;
+						default : ;
+					endcase
+					
+					casex (i_fifo_afull)
+						4'bxxx1 : phy_id_reg <= 2'd0;
+						4'bxx10 : phy_id_reg <= 2'd1;
+						4'bx100 : phy_id_reg <= 2'd2;
+						4'b1000 : phy_id_reg <= 2'd3;
+						default : STATE <= S_IDLE; // if no one is selectable, stay IDLE;
 					endcase
 				end					
 			end
