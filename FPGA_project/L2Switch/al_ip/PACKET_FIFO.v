@@ -1,5 +1,6 @@
 /* This fifo is modified to support EOD (END OF DATA) signal */
 /* EOD indicates packet(frame) end, useful to develop network funciton */
+/* used in old BODY_FIFO implementation. */
 
 /************************************************************\
  **  Copyright (c) 2011-2021 Anlogic, Inc.
@@ -14,7 +15,10 @@
 
 `timescale 1ns / 1ps
 
-module PACKET_FIFO (
+module PACKET_FIFO #(
+	parameter integer DEPTH = 8192
+)
+(
 	rst,
 	di, clkw, we,
 	do, clkr, re,
@@ -45,15 +49,15 @@ module PACKET_FIFO (
 EG_LOGIC_FIFO #(
  	.DATA_WIDTH_W(9),
 	.DATA_WIDTH_R(9),
-	.DATA_DEPTH_W(4096),
-	.DATA_DEPTH_R(4096),
+	.DATA_DEPTH_W(DEPTH),
+	.DATA_DEPTH_R(DEPTH),
 	.ENDIAN("BIG"),
 	.RESETMODE("ASYNC"),
 	.E(0),
-	.F(4096),
+	.F(DEPTH),
 	.ASYNC_RESET_RELEASE("SYNC"),
 	.AE(6),
-	.AF(3000))
+	.AF(6600))
 logic_fifo(
 	.rst(rst),
 	.di(new_din),

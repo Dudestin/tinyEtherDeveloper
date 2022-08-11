@@ -6,6 +6,7 @@ set_pin_assignment {arst_n} { LOCATION = K16; }		##USER_KEY
 #set_pin_assignment {RGB_LED[1]} { LOCATION = J14;  }	##LED_G, J14
 #set_pin_assignment {RGB_LED[2]} { LOCATION = P13;  }	##LED_B, P13
 
+
 ## PHY0
 set_pin_assignment {PHY_RST[0]} {LOCATION = C9;}
 set_pin_assignment {PHY_TXC[0]} {LOCATION = N5;}
@@ -18,9 +19,9 @@ set_pin_assignment {PHY_COL[0]} {LOCATION = M3;}
 
 ## PHY1
 set_pin_assignment {PHY_RST[1]} {LOCATION = A5;}
-set_pin_assignment {PHY_TXC[1]} {LOCATION = A3;}  # now, pin has mulfactured
-set_pin_assignment {PHY_TXEN[1]} {LOCATION = A4;} ## hoge
-set_pin_assignment {PHY_TXD[1]} {LOCATION = D6;}  ## hoge
+set_pin_assignment {PHY_TXC[1]} {LOCATION = A3;}
+set_pin_assignment {PHY_TXEN[1]} {LOCATION = A4;}
+set_pin_assignment {PHY_TXD[1]} {LOCATION = D6;}
 set_pin_assignment {PHY_RXD[1]} {LOCATION = C3;}
 set_pin_assignment {PHY_RXC[1]} {LOCATION = C6;}
 set_pin_assignment {PHY_CRS[1]} {LOCATION = C7;}

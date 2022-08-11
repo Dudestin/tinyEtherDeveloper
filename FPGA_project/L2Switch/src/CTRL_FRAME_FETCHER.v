@@ -58,7 +58,7 @@ module CTRL_FRAME_FETCHER #(
 	input  [31:0] iomem_wdata;
 	output [31:0] iomem_rdata;
 	
-	input  wire cfg_we;
+	input  wire [3:0]  cfg_we;
 	input  wire [31:0] cfg_di;
 	output wire [31:0] cfg_do;
 	
@@ -87,9 +87,9 @@ module CTRL_FRAME_FETCHER #(
 			/* write data */
 			if (cfg_we[3])
 			begin
-				config_get_next_data <= cfg_din[30];
-				config_ignore_bpds   <= cfg_din[29];
-				config_ignore_pause  <= cfg_din[28];
+				config_get_next_data <= cfg_di[30];
+				config_ignore_bpds   <= cfg_di[29];
+				config_ignore_pause  <= cfg_di[28];
 			end
 
 			/* read only data */
@@ -139,7 +139,7 @@ module CTRL_FRAME_FETCHER #(
 		
 	/* local signal */
 	reg [5:0] cnt_reg;
-	wire [47:0] dst_mac = h_fifo_din[111:64];
+	wire [47:0] dst_mac = h_fifo_dout[111:64];
 	wire is_bpds_frame  = (dst_mac == 48'h01_80_C2_00_00_00); 
 	wire is_pause_frame = (dst_mac == 48'h01_80_C2_00_00_01);
 	

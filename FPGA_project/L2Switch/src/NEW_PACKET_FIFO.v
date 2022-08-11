@@ -1,4 +1,5 @@
 // can store 32768 words (~= 20 frame)
+// used in BODY_FIFO implementation.
 
 module NEW_PACKET_FIFO #(
 	parameter integer AEMPTY_CNT = 63,

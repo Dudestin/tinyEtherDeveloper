@@ -54,7 +54,7 @@ module CTRL_FRAME_ISSUER (
 	output wire p3_fifo_afull;
 	output wire p3_fifo_wren;
 
-	input  wire cfg_we;
+	input  wire [ 3:0] cfg_we;
 	input  wire [31:0] cfg_di;
 	output wire [31:0] cfg_do;
 	
@@ -66,7 +66,7 @@ module CTRL_FRAME_ISSUER (
 	reg config_port;  // [27:24], RW, one-hot, transmit port.
 	reg config_frame_byte_len; // [23:14], RW, transmit frame Byte length (1(0) to 64(63) Byte).
  	// read config	
-	assign cfg_do[31] = config_tx_frame;
+	assign cfg_do[31] = config_tx;
 	assign cfg_do[30] = config_ready;
 	assign cfg_do[29] = config_busy;
 	assign cfg_do[28] = config_abort;
@@ -88,7 +88,7 @@ module CTRL_FRAME_ISSUER (
 			// write config
 			if (cfg_we[3])
 			begin
-				config_tx_frame <= cfg_di[31];
+				config_tx       <= cfg_di[31];
 				config_abort    <= cfg_di[28];
 				config_port     <= cfg_di[27:24];
 			end
@@ -119,7 +119,7 @@ module CTRL_FRAME_ISSUER (
 		if (~arst_n)
 		begin
 			for (i = 0; i < 16; i = i + 1) // reset RAM
-				frame_ram <= 32'b0;
+				frame_ram[i] <= 32'b0;
 		end
 		else
 		begin
@@ -145,11 +145,12 @@ module CTRL_FRAME_ISSUER (
 	/* local signal */
 	reg [3:0] latched_config_port;
 	reg [9:0] latched_config_frame_byte_len;
-	
+	reg [31:0] wr_word_reg;	
+	reg [7:0] cnt_reg;
+		
 	assign o_fifo_din = wr_word_reg; // common for all PHY-TX FIFO
 	assign o_fifo_del = (cnt_reg == latched_config_frame_byte_len); // common for all PHY-TX FIFO
 
-	reg [7:0] cnt_reg;
 	wire phy_ready = ~|({p3_fifo_afull, p2_fifo_afull, p1_fifo_afull, p0_fifo_afull} & latched_config_port);
 	reg [3:0] port_wren;
 	assign p0_fifo_wren = port_wren[0];
@@ -172,10 +173,10 @@ module CTRL_FRAME_ISSUER (
 			case (STATE)
 				S_IDLE : 
 				begin
-					if (config_tx_frame)
+					if (config_tx)
 					begin
-						config_tx_frame <= 1'b0;
-						config_busy     <= 1'b1;
+						config_tx   <= 1'b0;
+						config_busy <= 1'b1;
 						latched_config_port <= config_port;
 						latched_config_frame_byte_len <= config_frame_byte_len;
 						STATE <= S_WAIT;
@@ -193,10 +194,10 @@ module CTRL_FRAME_ISSUER (
 					port_wren<= latched_config_port;
 					cnt_reg  <= cnt_reg + 1'b1;
 					case (cnt_reg[1:0])
-						2'd0: wr_word_reg <= frame_rame [cnt_reg[7:2]] [31:24];
-						2'd1: wr_word_reg <= frame_rame [cnt_reg[7:2]] [23:16];
-						2'd2: wr_word_reg <= frame_rame [cnt_reg[7:2]] [15: 8];
-						2'd3: wr_word_reg <= frame_rame [cnt_reg[7:2]] [ 7: 0];
+						2'd0: wr_word_reg <= frame_ram [cnt_reg[7:2]] [31:24];
+						2'd1: wr_word_reg <= frame_ram [cnt_reg[7:2]] [23:16];
+						2'd2: wr_word_reg <= frame_ram [cnt_reg[7:2]] [15: 8];
+						2'd3: wr_word_reg <= frame_ram [cnt_reg[7:2]] [ 7: 0];
 						default : wr_word_reg <= 8'b0;
 					endcase
 

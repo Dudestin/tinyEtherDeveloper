@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-07-08 05:10:50</Project_Created_Time>
     <TD_Version>4.4.433</TD_Version>
-    <UCode>00000000</UCode>
+    <UCode>10100010</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -24,11 +24,22 @@
             <File>src/verilog-cam/rtl/cam_srl.v</File>
             <File>src/verilog-cam/rtl/priority_encoder.v</File>
             <File>src/TOP_LoopbackTest.v</File>
-            <File>src/TOP_FIFOTest.v</File>
-            <File>al_ip/clk_bufg.v</File>
             <File>al_ip/pll_clk100M.v</File>
             <File>src/crc.v</File>
             <File>al_ip/HEADER_FIFO.v</File>
+            <File>al_ip/bram32k.v</File>
+            <File>src/FRAME_FIFO.v</File>
+            <File>al_ip/bram9k.v</File>
+            <File>src/NEW_PACKET_FIFO.v</File>
+            <File>al_ip/BRAM9Kx32.v</File>
+            <File>src/gray2bin.v</File>
+            <File>src/TOP_FIFOTest.v</File>
+            <File>src/vec_sync_2ff.v</File>
+            <File>src/RMII_TX.v</File>
+            <File>src/RMII_RX.v</File>
+            <File>al_ip/CTRL_FRAME_FIFO.v</File>
+            <File>src/CTRL_FRAME_FETCHER.v</File>
+            <File>src/CTRL_FRAME_ISSUER.v</File>
         </Verilog>
         <ADC_FILE>constraints/io.adc</ADC_FILE>
         <SDC_FILE/>
@@ -39,9 +50,17 @@
         <MODULE>TOP_L2_SWITCH</MODULE>
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
+    <Property>
+        <DesignProperty>
+            <infer_fsm>auto</infer_fsm>
+        </DesignProperty>
+        <BitgenProperty::GeneralOption>
+            <s>off</s>
+        </BitgenProperty::GeneralOption>
+    </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-07-26 11:39:58</Step_Last_Change>
-        <Current_Step>30</Current_Step>
+        <Step_Last_Change>2022-08-12 03:49:01</Step_Last_Change>
+        <Current_Step>20</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>
