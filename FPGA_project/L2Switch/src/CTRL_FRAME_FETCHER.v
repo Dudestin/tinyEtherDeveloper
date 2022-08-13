@@ -1,10 +1,8 @@
 /* fetch control frame only from H_FIFO & B_FIFO */
-/* have receive buffer able to store 32 frames */
+/* Only 64 Byte Frame fetch unit, able to store 32 frames */
 
 module CTRL_FRAME_FETCHER #(
-	parameter HEADER_DWIDTH = 128,
-	parameter IO_ADDR_BASE = 32'h00_00_00_00,
-	parameter CFG_ADDR_BASE = 32'h00_00_00_00
+	parameter HEADER_DWIDTH = 128
 )( 
 	clk,
 	arst_n,
@@ -26,12 +24,7 @@ module CTRL_FRAME_FETCHER #(
 	iomem_wstrb,
 	iomem_addr,
 	iomem_wdata,
-	iomem_rdata,
-	
-	// config signal
-	cfg_we,
-	cfg_di,
-	cfg_do
+	iomem_rdata
 );
 
 	input wire clk;
@@ -60,12 +53,9 @@ module CTRL_FRAME_FETCHER #(
 	input  [31:0] iomem_wdata; // not used (because Read Only Interface)
 	output reg [31:0] iomem_rdata;
 	
-	input  wire [3:0]  cfg_we;
-	input  wire [31:0] cfg_di;
-	output wire [31:0] cfg_do;
-	
+	wire [31:0] cfg_do;
 	/* Config */
-	reg config_frame_valid;   // indicates valid data is provided
+	wire config_frame_valid = ~fifo_empty;   // indicates valid data is provided
 	reg config_get_next_data; // get next data
 	reg config_ignore_bpds;   // ignore BPDS frame  (used in STP) 
 	reg config_ignore_pause;  // ignore PAUSE frame (used in Flow-Control)
@@ -74,47 +64,23 @@ module CTRL_FRAME_FETCHER #(
 	assign cfg_do[30] = config_get_next_data;
 	assign cfg_do[29] = config_ignore_bpds;
 	assign cfg_do[28] = config_ignore_pause;
-	
-	always @(posedge clk or negedge arst_n)
-	begin
-		if (~arst_n)
-		begin
-			config_frame_valid  <= 1'b0; // 32bit, read only
-			config_get_next_data<= 1'b0; // 31bit, write & read
-			config_ignore_bpds  <= 1'b0; // 30bit, write & read
-			config_ignore_pause <= 1'b0; // 29bit, write & read
-		end
-		else
-		begin
-			/* write data */
-			if (cfg_we[3])
-			begin
-				config_get_next_data <= cfg_di[30];
-				config_ignore_bpds   <= cfg_di[29];
-				config_ignore_pause  <= cfg_di[28];
-			end
-
-			/* read only data */
-			if (config_frame_valid) 
-				config_frame_valid <= ~fifo_empty;
-		end
-	end	
+	assign cfg_do[27:0] = 28'b0;
 	
 	/* Memory Interface */
-	reg [4+1:0] wr_ptr1;
+	reg [5+1:0] wr_ptr1;
 	reg [  3:0] wr_ptr2;
-	reg [4+1:0] rd_ptr;
+	reg [5+1:0] rd_ptr;
 	reg destroy;
 	wire fifo_empty = (wr_ptr1 == rd_ptr);
-	wire fifo_full  = (wr_ptr1 == {~rd_ptr[5], rd_ptr[4:0]});
+	wire fifo_full  = (wr_ptr1 == {~rd_ptr[6], rd_ptr[5:0]});
 	reg ram_wen;
 	reg  [31:0] wr_word_reg;
 	wire [31:0] raw_ram_dout;
 
 	/* TODO [] : check BRAM latency */
 	CTRL_FRAME_RAM ctrl_frame_ram_impl ( 
-		.doa(), .dia(wr_word_reg), .addra({wr_ptr1[4:0], wr_ptr2}), .clka(clk), .wea(ram_wen & ~destroy), .rsta(), 
-		.dob(raw_ram_dout), .dib(32'bz), .addrb({rd_ptr[4:0], iomem_addr[3:0]}), .clkb(clk), .web(1'b0), .rstb()
+		.doa(), .dia(wr_word_reg), .addra({wr_ptr1[5:0], wr_ptr2}), .clka(clk), .wea(ram_wen & {4{~destroy}}), .rsta(1'b0), 
+		.dob(raw_ram_dout), .dib(32'bz), .addrb({rd_ptr[5:0], iomem_addr[3:0]}), .clkb(clk), .web(4'b0), .rstb(1'b0)
 	);
 	
 	always @(posedge clk or negedge arst_n)
@@ -123,10 +89,32 @@ module CTRL_FRAME_FETCHER #(
 		begin
 			iomem_ready <=  1'b0;
 			iomem_rdata <= 32'b0;
+			/* config interface */
+			config_get_next_data <= 1'b0;
+			config_ignore_bpds   <= 1'b0;
+			config_ignore_pause  <= 1'b0;
 		end
 		else
 		begin
 			iomem_ready <= 1'b0;
+			
+			/* Config Interface */			
+			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h14)
+			begin
+				/* write data */
+				if (iomem_wstrb[3])
+				begin
+					config_get_next_data <= iomem_wdata[30];
+					config_ignore_bpds   <= iomem_wdata[29];
+					config_ignore_pause  <= iomem_wdata[28];
+				end
+				else
+				begin
+					config_get_next_data <= 1'b0;
+				end
+			end	
+			
+			/* Data Transfer Interface */
 			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h04)
 			begin
 				iomem_ready <= 1'b1;
@@ -135,20 +123,19 @@ module CTRL_FRAME_FETCHER #(
 				/* read only, so no write interface there */
 			end
 		end
-	end	
+	end
 
 	/* increment read pointer */
 	always @(posedge clk or negedge arst_n)
 	begin
 		if (~arst_n)
 		begin
-			rd_ptr <= 6'b0;
+			rd_ptr <= 7'b0;
 		end
 		else
 		begin
 			if (config_get_next_data & ~fifo_empty)
 			begin
-				config_get_next_data <= 1'b0;
 				rd_ptr <= rd_ptr + 1'b1;
 			end
 		end
@@ -163,7 +150,7 @@ module CTRL_FRAME_FETCHER #(
 		S_END    = 2'd3;
 		
 	/* local signal */
-	reg  [5:0] cnt_reg;
+	reg  [10:0] cnt_reg; // 2^11 = 2048
 	wire [47:0] dst_mac = h_fifo_dout[111:64];
 	wire is_bpds_frame  = (dst_mac == 48'h01_80_C2_00_00_00); 
 	wire is_pause_frame = (dst_mac == 48'h01_80_C2_00_00_01);
@@ -184,8 +171,8 @@ module CTRL_FRAME_FETCHER #(
 		if (~arst_n)
 		begin
 			STATE   <= S_IDLE;
-			cnt_reg <= 6'b0;
-			wr_ptr1 <= 6'b0;
+			cnt_reg <= 11'b0;
+			wr_ptr1 <= 7'b0;
 			wr_ptr2 <= 4'b0;
 			destroy <= 1'b0;
 			wr_word_reg <= 32'b0;
@@ -217,10 +204,10 @@ module CTRL_FRAME_FETCHER #(
 					wr_ptr2 <= wr_ptr2 + 1'b1;
 					ram_wen <= 1'b1;
 					case (cnt_reg)
-						6'd0  : wr_word_reg <= endian_conv(h_fifo_dout[127:96]);
-						6'd1  : wr_word_reg <= endian_conv(h_fifo_dout[ 95:64]);
-						6'd2  : wr_word_reg <= endian_conv(h_fifo_dout[ 63:32]);
-						6'd3  :
+						11'd0  : wr_word_reg <= endian_conv(h_fifo_dout[127:96]);
+						11'd1  : wr_word_reg <= endian_conv(h_fifo_dout[ 95:64]);
+						11'd2  : wr_word_reg <= endian_conv(h_fifo_dout[ 63:32]);
+						11'd3  :
 						begin 
 							wr_word_reg <= endian_conv(h_fifo_dout[ 31: 0]);
 							STATE <= S_BODY;							
@@ -232,10 +219,10 @@ module CTRL_FRAME_FETCHER #(
 				S_BODY : 
 				begin
 					cnt_reg <= cnt_reg + 1'b1;
-					b_fifo_rden_reg <= 1'b1; // read from B-FIFO each Byte
+					b_fifo_rden_reg <= 1'b1;  // read from B-FIFO each Byte
 					wr_word_reg <= {b_fifo_dout, wr_word_reg[31:8]}; // little-endian layout
 					
-					if (cnt_reg[1:0] == 2'd3) // write to RAM each 4-Byte
+					if (cnt_reg[1:0] == 2'd3) // write to RAM each 4 Byte (1-Word)
 					begin
 						wr_ptr2 <= wr_ptr2 + 1'b1;
 						ram_wen <= 1'b1;
@@ -246,17 +233,20 @@ module CTRL_FRAME_FETCHER #(
 						ram_wen <= 1'b0;
 					end
 					
-					if (b_fifo_del || cnt_reg[5:2] == 4'hF) // tail of the frame
+					// if exceed 64 Byte, ignore later bytes.
+					if (cnt_reg > 11'd63)
+						ram_wen <= 1'b0;
+					// if reach end of frame (delimiter), don't read more & go to S_END
+					if (b_fifo_del) // tail of the frame 
 					begin
-						STATE <= S_END;
 						b_fifo_rden_reg <= 1'b0;
+						STATE <= S_END;
 					end
-					else
-						STATE <= S_BODY;
 				end
 				
 				S_END : 
 				begin
+					cnt_reg <= 11'b0;
 					wr_ptr1 <= wr_ptr1 + 1'b1;
 					wr_ptr2 <= 4'b0;
 					wr_word_reg <= 32'b0;

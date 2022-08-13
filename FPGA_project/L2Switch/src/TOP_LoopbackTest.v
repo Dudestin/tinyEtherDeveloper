@@ -48,7 +48,7 @@ module TOP_LoopbackTest(
 	wire fifo_afull;
 	wire fifo_wren;
 	wire fifo_EOD_in;
-	PHY_RX phy_rx (
+	SNI_RX phy_rx (
 		.arst_n(RST_N),
 		// FIFO Signal
 		.fifo_afull(fifo_afull), .fifo_din(fifo_din), .fifo_wren(fifo_wren),

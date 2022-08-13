@@ -190,9 +190,7 @@ module TOP_L2_SWITCH #(
 	
 	/* SOC - TX frame module */	
 	CTRL_FRAME_FETCHER #(
-		.HEADER_DWIDTH(128),
-		.IO_ADDR_BASE(32'h00_00_00_00),
-		.CFG_ADDR_BASE(32'h00_00_00_00)
+		.HEADER_DWIDTH(128)
 	) ctrl_frame_fetcher_impl ( 
 		.clk(clk),
 		.arst_n(arst_n),
@@ -214,12 +212,7 @@ module TOP_L2_SWITCH #(
 		.iomem_wstrb(),
 		.iomem_addr(),
 		.iomem_wdata(),
-		.iomem_rdata(),
-	
-		// config signal
-		.cfg_we(),
-		.cfg_di(),
-		.cfg_do()
+		.iomem_rdata()
 	);
 	
 	/* SOC - RX frame module */
@@ -271,12 +264,7 @@ module TOP_L2_SWITCH #(
 		.iomem_wstrb(),
 		.iomem_addr(),
 		.iomem_wdata(),
-		.iomem_rdata(),
-	
-		/* Config signal */
-		.cfg_we(),
-		.cfg_di(),
-		.cfg_do()
+		.iomem_rdata()
 	);
 	
 	/* Switch */
