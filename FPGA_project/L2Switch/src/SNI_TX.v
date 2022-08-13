@@ -4,7 +4,7 @@
 // This unit don't calculate FCS, previous units should calculate them.
 // to avoid circuit bloating. 
 
-module PHY_TX #(
+module SNI_TX #(
     parameter IFG = 96 // Interframe Gap
 )( 
 	arst_n,

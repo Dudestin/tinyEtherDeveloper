@@ -74,7 +74,7 @@ module TOP_LoopbackTest(
 		.EOD_in(fifo_EOD_in), .EOD_out(fifo_EOD_out)
 	);
 	
-	PHY_TX phy_tx (
+	SNI_TX phy_tx (
 		.arst_n(RST_N),
 		// FIFO signal
 		.fifo_aempty(fifo_aempty), .fifo_dout(fifo_dout), .fifo_empty(fifo_empty), .fifo_rden(fifo_rden),

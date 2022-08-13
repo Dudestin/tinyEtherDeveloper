@@ -2,7 +2,7 @@
 // Receive data from PHY, then delete preamble, SFD and FCS section.
 // After, Store data and EOD (End of Data) flags to FIFO.
 
-module PHY_RX(
+module SNI_RX(
 	arst_n,
 	fifo_afull, fifo_din, fifo_wren,
 	// Original FIFO Signal

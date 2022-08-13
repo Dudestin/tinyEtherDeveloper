@@ -60,7 +60,7 @@ module TOP_Simple_L2_SWITCH #(
 	generate
 		for (i = 0; i < PHY_NUM; i = i + 1)
 		begin : PHY_RX_INTERFACE
-		PHY_RX phy_rx (
+		SNI_RX phy_rx (
 			.arst_n(arst_n),
 			.fifo_afull(frame_fifo_rx_afull_flag[i]),
 			.fifo_din(frame_fifo_rx_fifo_din[i]),
@@ -251,7 +251,7 @@ module TOP_Simple_L2_SWITCH #(
 			.EOD_out(frame_fifo_tx_EOD_out[i])		
 		);
 		
-		PHY_TX #(
+		SNI_TX #(
    			.IFG(96) // Interframe Gap
 		) phy_tx ( 
 			.arst_n(arst_n),
