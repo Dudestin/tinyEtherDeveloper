@@ -227,15 +227,15 @@ module CTRL_FRAME_ISSUER (
 					STATE <= S_IDLE;
 				end
 			endcase
-		end
-
-		/* abort transmit */ 
-		if (config_abort && (STATE == S_END || STATE == S_IDLE))
-		begin
-			port_wren    <= 4'b0;
-			mutex_req    <= 4'b0;  // release PHY-FIFO
-			config_abort <= 1'b0;
-			STATE <= S_END;
+			
+			/* abort transmit */ 
+			if (config_abort&& (STATE == S_END || STATE == S_IDLE))
+			begin
+				port_wren    <= 4'b0;
+				mutex_req    <= 4'b0;  // release PHY-FIFO
+				config_abort <= 1'b0;
+				STATE <= S_END;
+			end
 		end
 	end
 
