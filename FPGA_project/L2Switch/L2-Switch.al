@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-07-08 05:10:50</Project_Created_Time>
     <TD_Version>4.4.433</TD_Version>
-    <UCode>10100010</UCode>
+    <UCode>10001000</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -37,18 +37,20 @@
             <File>src/vec_sync_2ff.v</File>
             <File>src/RMII_TX.v</File>
             <File>src/RMII_RX.v</File>
-            <File>al_ip/CTRL_FRAME_FIFO.v</File>
             <File>src/CTRL_FRAME_FETCHER.v</File>
             <File>src/CTRL_FRAME_ISSUER.v</File>
+            <File>al_ip/CTRL_FRAME_RAM.v</File>
+            <File>src/mutex.v</File>
+            <File>src/TOP_Simple_L2_SWITCH.v</File>
         </Verilog>
         <ADC_FILE>constraints/io.adc</ADC_FILE>
         <SDC_FILE/>
         <CWC_FILE/>
     </Source_Files>
     <TOP_MODULE>
-        <LABEL/>
-        <MODULE>TOP_L2_SWITCH</MODULE>
-        <CREATEINDEX>user</CREATEINDEX>
+        <LABEL></LABEL>
+        <MODULE>TOP_Simple_L2_SWITCH</MODULE>
+        <CREATEINDEX>auto</CREATEINDEX>
     </TOP_MODULE>
     <Property>
         <DesignProperty>
@@ -59,8 +61,8 @@
         </BitgenProperty::GeneralOption>
     </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-08-12 03:49:01</Step_Last_Change>
-        <Current_Step>20</Current_Step>
+        <Step_Last_Change>2022-08-13 11:01:02</Step_Last_Change>
+        <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>

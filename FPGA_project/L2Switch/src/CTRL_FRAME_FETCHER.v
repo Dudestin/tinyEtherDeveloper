@@ -2,7 +2,9 @@
 /* have receive buffer able to store 32 frames */
 
 module CTRL_FRAME_FETCHER #(
-	parameter HEADER_DWIDTH = 128
+	parameter HEADER_DWIDTH = 128,
+	parameter IO_ADDR_BASE = 32'h00_00_00_00,
+	parameter CFG_ADDR_BASE = 32'h00_00_00_00
 )( 
 	clk,
 	arst_n,
@@ -51,12 +53,12 @@ module CTRL_FRAME_FETCHER #(
 	input  wire b_fifo_del; // delimiter
 
 	/* picosoc IO interface */
-	input         iomem_valid;
-	output        iomem_ready;
-	input  [ 3:0] iomem_wstrb;
+	input         iomem_valid; // not used (because Read Only Interface)
+	output  reg   iomem_ready;
+	input  [ 3:0] iomem_wstrb; // not used (because Read Only Interface)
 	input  [31:0] iomem_addr;
-	input  [31:0] iomem_wdata;
-	output [31:0] iomem_rdata;
+	input  [31:0] iomem_wdata; // not used (because Read Only Interface)
+	output reg [31:0] iomem_rdata;
 	
 	input  wire [3:0]  cfg_we;
 	input  wire [31:0] cfg_di;
@@ -98,7 +100,7 @@ module CTRL_FRAME_FETCHER #(
 		end
 	end	
 	
-	/* read from RAM */
+	/* Memory Interface */
 	reg [4+1:0] wr_ptr1;
 	reg [  3:0] wr_ptr2;
 	reg [4+1:0] rd_ptr;
@@ -106,13 +108,36 @@ module CTRL_FRAME_FETCHER #(
 	wire fifo_empty = (wr_ptr1 == rd_ptr);
 	wire fifo_full  = (wr_ptr1 == {~rd_ptr[5], rd_ptr[4:0]});
 	reg ram_wen;
-	reg [127:0] wr_word_reg;
+	reg  [31:0] wr_word_reg;
+	wire [31:0] raw_ram_dout;
 
+	/* TODO [] : check BRAM latency */
 	CTRL_FRAME_RAM ctrl_frame_ram_impl ( 
 		.doa(), .dia(wr_word_reg), .addra({wr_ptr1[4:0], wr_ptr2}), .clka(clk), .wea(ram_wen & ~destroy), .rsta(), 
-		.dob(iomem_rdata), .dib(32'bz), .addrb({rd_ptr[4:0], iomem_addr[3:0]}), .clkb(clk), .web(1'b0), .rstb()
+		.dob(raw_ram_dout), .dib(32'bz), .addrb({rd_ptr[4:0], iomem_addr[3:0]}), .clkb(clk), .web(1'b0), .rstb()
 	);
+	
+	always @(posedge clk or negedge arst_n)
+	begin
+		if (~arst_n)
+		begin
+			iomem_ready <=  1'b0;
+			iomem_rdata <= 32'b0;
+		end
+		else
+		begin
+			iomem_ready <= 1'b0;
+			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h04)
+			begin
+				iomem_ready <= 1'b1;
+				/* read from RAM */
+				iomem_rdata <= raw_ram_dout;
+				/* read only, so no write interface there */
+			end
+		end
+	end	
 
+	/* increment read pointer */
 	always @(posedge clk or negedge arst_n)
 	begin
 		if (~arst_n)
@@ -138,10 +163,21 @@ module CTRL_FRAME_FETCHER #(
 		S_END    = 2'd3;
 		
 	/* local signal */
-	reg [5:0] cnt_reg;
+	reg  [5:0] cnt_reg;
 	wire [47:0] dst_mac = h_fifo_dout[111:64];
 	wire is_bpds_frame  = (dst_mac == 48'h01_80_C2_00_00_00); 
 	wire is_pause_frame = (dst_mac == 48'h01_80_C2_00_00_01);
+	
+	// convert endian, because riscv support little-endian, 
+	// but ethernet frame follow big endian
+	function [31:0] endian_conv (input [31:0] din);
+	begin
+		endian_conv[ 7: 0] = din[31:24];
+		endian_conv[15: 8] = din[23:16];
+		endian_conv[23:16] = din[15: 8];
+		endian_conv[31:24] = din[7 : 0];
+	end
+	endfunction
 	
 	always @(posedge clk or negedge arst_n)
 	begin
@@ -152,7 +188,7 @@ module CTRL_FRAME_FETCHER #(
 			wr_ptr1 <= 6'b0;
 			wr_ptr2 <= 4'b0;
 			destroy <= 1'b0;
-			wr_word_reg <= 128'b0;
+			wr_word_reg <= 32'b0;
 		end
 		else
 		begin
@@ -181,12 +217,12 @@ module CTRL_FRAME_FETCHER #(
 					wr_ptr2 <= wr_ptr2 + 1'b1;
 					ram_wen <= 1'b1;
 					case (cnt_reg)
-						6'd0  : wr_word_reg <= h_fifo_dout[127:96];
-						6'd1  : wr_word_reg <= h_fifo_dout[ 95:64];
-						6'd2  : wr_word_reg <= h_fifo_dout[ 63:32];
+						6'd0  : wr_word_reg <= endian_conv(h_fifo_dout[127:96]);
+						6'd1  : wr_word_reg <= endian_conv(h_fifo_dout[ 95:64]);
+						6'd2  : wr_word_reg <= endian_conv(h_fifo_dout[ 63:32]);
 						6'd3  :
 						begin 
-							wr_word_reg <= h_fifo_dout[ 31: 0];
+							wr_word_reg <= endian_conv(h_fifo_dout[ 31: 0]);
 							STATE <= S_BODY;							
 						end
 						default : ;
@@ -197,7 +233,7 @@ module CTRL_FRAME_FETCHER #(
 				begin
 					cnt_reg <= cnt_reg + 1'b1;
 					b_fifo_rden_reg <= 1'b1; // read from B-FIFO each Byte
-					wr_word_reg <= {wr_word_reg[23:0], b_fifo_dout};		
+					wr_word_reg <= {b_fifo_dout, wr_word_reg[31:8]}; // little-endian layout
 					
 					if (cnt_reg[1:0] == 2'd3) // write to RAM each 4-Byte
 					begin

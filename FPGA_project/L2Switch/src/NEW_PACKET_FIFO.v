@@ -1,9 +1,9 @@
-// can store 32768 words (~= 20 frame)
+// can store 16384 words (~= 10 frame)
 // used in BODY_FIFO implementation.
 
 module NEW_PACKET_FIFO #(
-	parameter integer AEMPTY_CNT = 63,
-	parameter integer AFULL_CNT = 31000
+	parameter integer AEMPTY_CNT = 64,
+	parameter integer AFULL_CNT = 15000
 )( 
 	rst,
 	di, clkw, we,
@@ -33,7 +33,8 @@ module NEW_PACKET_FIFO #(
 	assign do      = new_dout[8:1];
 	assign EOD_out = new_dout[0];	
 	
-	localparam WA=15;	
+	/* if you modify BRAM9K size, need to change WA value */
+	localparam WA=14;
 	
 	reg[WA:0] wadr;
 	reg[WA:0] radr;	

@@ -1,7 +1,7 @@
 /* Push frame to PHY-FIFO */
 /* up to 64 Byte (16-word) */
 
-/* TODO [] : impl. PHY-FIFO mutex system */
+/* TODO [x] : impl. PHY-FIFO mutex system */
 
 module CTRL_FRAME_ISSUER (
 	clk,
@@ -18,6 +18,9 @@ module CTRL_FRAME_ISSUER (
 	p2_fifo_wren,
 	p3_fifo_afull,
 	p3_fifo_wren,
+	
+	mutex_req,
+	mutex_val,
 
 	/* picosoc IO interface */
 	iomem_valid,
@@ -37,11 +40,11 @@ module CTRL_FRAME_ISSUER (
 	input wire arst_n;
 
 	input         iomem_valid;
-	output        iomem_ready;
+	output  reg   iomem_ready;
 	input  [ 3:0] iomem_wstrb;
 	input  [31:0] iomem_addr;
 	input  [31:0] iomem_wdata;
-	output [31:0] iomem_rdata;
+	output reg [31:0] iomem_rdata;
 	
 	output wire [7:0] o_fifo_din;
 	output wire o_fifo_del;
@@ -53,15 +56,19 @@ module CTRL_FRAME_ISSUER (
 	output wire p2_fifo_wren;
 	output wire p3_fifo_afull;
 	output wire p3_fifo_wren;
+	
+	// Exclusive Control
+	output reg  [3:0] mutex_req; // Index corresoponding to PHY_ID
+	input  wire [3:0] mutex_val;
 
 	input  wire [ 3:0] cfg_we;
 	input  wire [31:0] cfg_di;
 	output wire [31:0] cfg_do;
 	
-	/* Config */
+	/* Config Interface */
 	reg  config_tx;    // [31:31], RW, transmit frame now. be sure to don't assert when not ready.
-	wire config_ready = ~config_busy; // [30:30], R , ready to fetch data (now, ~busy's alias).
 	reg config_busy;  // [29:29], R , 1 indicates busy.
+	wire config_ready = ~config_busy; // [30:30], R , ready to fetch data (now, ~busy's alias).
 	reg config_abort; // [28:28], RW, abort TX, valid when busy state.
 	reg config_port;  // [27:24], RW, one-hot, transmit port.
 	reg config_frame_byte_len; // [23:14], RW, transmit frame Byte length (1(0) to 64(63) Byte).
@@ -104,34 +111,37 @@ module CTRL_FRAME_ISSUER (
 		end
 	end
 
-	reg [31:0] frame_ram [0:15]; // 32x16 = 512-bit
-
-	/* read from RAM */
-	assign iomem_rdata[31:24] = frame_ram [iomem_addr[3:0]] [31:24];
-	assign iomem_rdata[23:16] = frame_ram [iomem_addr[3:0]] [23:16];
-	assign iomem_rdata[15: 8] = frame_ram [iomem_addr[3:0]] [15: 8];
-	assign iomem_rdata[ 7: 0] = frame_ram [iomem_addr[3:0]] [ 7: 0];
-
+	/* Memory Access Interface */
+	reg [31:0] frame_ram [0:15]; // 32(width)x16(depth) = 512-bit = 64 
+	
 	integer i;
-
 	always @(posedge clk or negedge arst_n)
 	begin
 		if (~arst_n)
 		begin
+			iomem_ready <=  1'b0;
+			iomem_rdata <= 32'b0;
 			for (i = 0; i < 16; i = i + 1) // reset RAM
 				frame_ram[i] <= 32'b0;
 		end
 		else
 		begin
-			/* write to RAM */
-			if (iomem_wstrb[3])
-				frame_ram [iomem_addr[3:0]] [31:24] <= iomem_wdata[31:24];
-			if (iomem_wstrb[2])
-				frame_ram [iomem_addr[3:0]] [23:16] <= iomem_wdata[23:16];
-			if (iomem_wstrb[1])
-				frame_ram [iomem_addr[3:0]] [15: 8] <= iomem_wdata[15: 8];
-			if (iomem_wstrb[0])
-				frame_ram [iomem_addr[3:0]] [ 7: 0] <= iomem_wdata[ 7: 0];
+			iomem_ready <= 1'b0;
+			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h05)
+			begin
+				iomem_ready <= 1'b1;
+				/* read from RAM */
+				iomem_rdata <= frame_ram [iomem_addr[3:0]];	
+				/* write to RAM */
+				if (iomem_wstrb[3])
+					frame_ram [iomem_addr[3:0]] [31:24] <= iomem_wdata[31:24];
+				if (iomem_wstrb[2])
+					frame_ram [iomem_addr[3:0]] [23:16] <= iomem_wdata[23:16];
+				if (iomem_wstrb[1])
+					frame_ram [iomem_addr[3:0]] [15: 8] <= iomem_wdata[15: 8];
+				if (iomem_wstrb[0])
+					frame_ram [iomem_addr[3:0]] [ 7: 0] <= iomem_wdata[ 7: 0];
+			end
 		end
 	end
 	
@@ -151,7 +161,7 @@ module CTRL_FRAME_ISSUER (
 	assign o_fifo_din = wr_word_reg; // common for all PHY-TX FIFO
 	assign o_fifo_del = (cnt_reg == latched_config_frame_byte_len); // common for all PHY-TX FIFO
 
-	wire phy_ready = ~|({p3_fifo_afull, p2_fifo_afull, p1_fifo_afull, p0_fifo_afull} & latched_config_port);
+	wire phy_fifo_ready = ~|({p3_fifo_afull, p2_fifo_afull, p1_fifo_afull, p0_fifo_afull} & latched_config_port);
 	reg [3:0] port_wren;
 	assign p0_fifo_wren = port_wren[0];
 	assign p1_fifo_wren = port_wren[1];
@@ -167,6 +177,7 @@ module CTRL_FRAME_ISSUER (
 			latched_config_frame_byte_len <= 10'b0;
 			cnt_reg   <= 8'b0;
 			port_wren <= 4'b0;
+			mutex_req <= 4'b0;
 		end
 		else
 		begin
@@ -178,6 +189,7 @@ module CTRL_FRAME_ISSUER (
 						config_tx   <= 1'b0;
 						config_busy <= 1'b1;
 						latched_config_port <= config_port;
+						mutex_req <= config_port; // Aquire mutex 
 						latched_config_frame_byte_len <= config_frame_byte_len;
 						STATE <= S_WAIT;
 					end
@@ -185,7 +197,7 @@ module CTRL_FRAME_ISSUER (
 				
 				S_WAIT :
 				begin
-					if (phy_ready)
+					if (phy_fifo_ready && (mutex_req == mutex_val)) // await aquiring mutex & FIFO have a space.
 						STATE <= S_TX;
 				end
 
@@ -194,10 +206,10 @@ module CTRL_FRAME_ISSUER (
 					port_wren<= latched_config_port;
 					cnt_reg  <= cnt_reg + 1'b1;
 					case (cnt_reg[1:0])
-						2'd0: wr_word_reg <= frame_ram [cnt_reg[7:2]] [31:24];
-						2'd1: wr_word_reg <= frame_ram [cnt_reg[7:2]] [23:16];
-						2'd2: wr_word_reg <= frame_ram [cnt_reg[7:2]] [15: 8];
-						2'd3: wr_word_reg <= frame_ram [cnt_reg[7:2]] [ 7: 0];
+						2'd0: wr_word_reg <= frame_ram [cnt_reg[7:2]] [ 7: 0]; // little endian to big endian.
+						2'd1: wr_word_reg <= frame_ram [cnt_reg[7:2]] [15: 8];
+						2'd2: wr_word_reg <= frame_ram [cnt_reg[7:2]] [23:16];
+						2'd3: wr_word_reg <= frame_ram [cnt_reg[7:2]] [31:24];
 						default : wr_word_reg <= 8'b0;
 					endcase
 
@@ -211,6 +223,7 @@ module CTRL_FRAME_ISSUER (
 				S_END : 
 				begin
 					config_busy <= 1'b0;
+					mutex_req   <= 4'b0; // release PHY-FIFO
 					STATE <= S_IDLE;
 				end
 			endcase
@@ -220,6 +233,7 @@ module CTRL_FRAME_ISSUER (
 		if (config_abort && (STATE == S_END || STATE == S_IDLE))
 		begin
 			port_wren    <= 4'b0;
+			mutex_req    <= 4'b0;  // release PHY-FIFO
 			config_abort <= 1'b0;
 			STATE <= S_END;
 		end

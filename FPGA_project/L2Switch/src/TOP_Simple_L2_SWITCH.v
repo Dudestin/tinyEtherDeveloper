@@ -1,4 +1,6 @@
-module TOP_L2_SWITCH #(
+/* No CPU edition */
+
+module TOP_Simple_L2_SWITCH #(
 	parameter HEADER_DWIDTH = 128
 )(
 	CLK_IN,
@@ -183,62 +185,11 @@ module TOP_L2_SWITCH #(
 	);	
 	
 	// PHY-TX module & FIFO
-	/* need to mutual exclusion for pushing PHY-FIFO between SOC and MAC-SWITCH */
-	/* be sure to set semaphore before awaiting PHY-FIFO space */
-	wire [3:0] mutex_req_0; // SOC
-	wire [3:0] mutex_req_1; // SWITCH
-	wire [3:0] mutex_val_0; // SOC
-	wire [3:0] mutex_val_1; // SWITCH
-	
-	wire [7:0] frame_fifo_tx_di;         // OUTPUT : common
-	wire       frame_fifo_del;           // OUTPUT : common
-	wire [3:0] frame_fifo_tx_afull_flag; // INPUT  : distinct
-	wire [3:0] frame_fifo_tx_we;	     // OUTPUT : distinct	
-
-	/* SOC */
-	wire [7:0] soc_frame_fifo_tx_di;     // OUTPUT : common
-	wire       soc_frame_fifo_del;       // OUTPUT : common
-	wire [3:0] soc_frame_fifo_tx_we;     // OUTPUT : distinct
-	
 	/* MAC Switch (L2-Switch) */
-	wire [7:0] switch_frame_fifo_tx_di;         // OUTPUT : common
-	wire       switch_frame_fifo_del;           // OUTPUT : common
-	wire [3:0] switch_frame_fifo_tx_we;	        // OUTPUT : distinct
-	
-	/* SOC interface */
-	CTRL_FRAME_ISSUER ctrl_frame_issuer_impl (
-		.clk(clk),
-		.arst_n(arst_n),
-	
-		/* OUTPUT : PHY-TX FIFO */
-		.o_fifo_din(soc_frame_fifo_tx_di), // common for all PHY-TX FIFO
-		.o_fifo_del(soc_frame_fifo_del),   // common for all PHY-TX FIFO
-		.p0_fifo_afull(frame_fifo_tx_afull_flag[0]),
-		.p0_fifo_wren(soc_frame_fifo_tx_we[0]),
-		.p1_fifo_afull(frame_fifo_tx_afull_flag[1]),
-		.p1_fifo_wren(soc_frame_fifo_tx_we[1]),
-		.p2_fifo_afull(frame_fifo_tx_afull_flag[2]),
-		.p2_fifo_wren(soc_frame_fifo_tx_we[2]),
-		.p3_fifo_afull(frame_fifo_tx_afull_flag[3]),
-		.p3_fifo_wren(soc_frame_fifo_tx_we[3]),
-	
-		.mutex_req(mutex_req_0),
-		.mutex_val(mutex_val_0),
-
-		/* picosoc IO interface */
-		.iomem_valid(),
-		.iomem_ready(),
-		.iomem_wstrb(),
-		.iomem_addr(),
-		.iomem_wdata(),
-		.iomem_rdata(),
-	
-		/* Config signal */
-		.cfg_we(),
-		.cfg_di(),
-		.cfg_do()
-	);
-	
+	wire [7:0] frame_fifo_tx_di;         // OUTPUT : common
+	wire frame_fifo_del;                 // OUTPUT : common
+	wire [3:0] frame_fifo_tx_afull_flag; // INPUT  : distinct
+	wire [3:0] frame_fifo_tx_we;	     // OUTPUT : distinct
 	MAC_SWITCH
 	#(
 		.PORT_TABLE_ADDR_LEN(3)
@@ -255,23 +206,23 @@ module TOP_L2_SWITCH #(
 		.b_fifo_empty(frame_fifo_mac_b_empty_flag),
 		.b_fifo_del(frame_fifo_mac_b_EOD_out),
 	
-		.o_fifo_din(switch_frame_fifo_tx_di),
-		.o_fifo_del(switch_frame_fifo_del),
+		.o_fifo_din(frame_fifo_tx_di),
+		.o_fifo_del(frame_fifo_del),
 		.p0_fifo_afull(frame_fifo_tx_afull_flag[0]),
-		.p0_fifo_wren(switch_frame_fifo_tx_we[0]),		
+		.p0_fifo_wren(frame_fifo_tx_we[0]),		
 		.p1_fifo_afull(frame_fifo_tx_afull_flag[1]),
-		.p1_fifo_wren(switch_frame_fifo_tx_we[1]),			
+		.p1_fifo_wren(frame_fifo_tx_we[1]),			
 		.p2_fifo_afull(frame_fifo_tx_afull_flag[2]),
-		.p2_fifo_wren(switch_frame_fifo_tx_we[2]),		
+		.p2_fifo_wren(frame_fifo_tx_we[2]),		
 		.p3_fifo_afull(frame_fifo_tx_afull_flag[3]),
-		.p3_fifo_wren(switch_frame_fifo_tx_we[3]),
+		.p3_fifo_wren(frame_fifo_tx_we[3]),
 		
-		// exclusive control
-		.mutex_req(mutex_req_1),
-		.mutex_val(mutex_val_1),
+		.mutex_req(),
+		.mutex_val(4'b1111),
 		
 		.mask_port(4'b0)
 	);
+	
 	
 	/* PHY FRAME_OUTPUT */
 	wire [7:0] frame_fifo_tx_do [0:3];
@@ -283,20 +234,11 @@ module TOP_L2_SWITCH #(
 	generate
 	for (i = 0; i < PHY_NUM; i = i + 1)
 	begin : PHY_TX_INTERFACE
-		mutex phy_mutex ( 
-			.clk(clk),
-			.arst_n(arst_n),
-			.req_0(mutex_req_0[i]), // from SOC    : high priority 
-			.req_1(mutex_req_1[i]), // from SWITCH : low  priority
-			.val_0(mutex_val_0[i]), // to SOC
-			.val_1(mutex_val_1[i])  // to SWITCH
-		);
-	
 		FRAME_FIFO frame_fifo_tx (
 			.rst(rst),
-			.di(mutex_val_0[i] ? soc_frame_fifo_tx_di : switch_frame_fifo_tx_di),
+			.di(frame_fifo_tx_di),
 			.clkw(clk),
-			.we(mutex_val_0[i] ? soc_frame_fifo_tx_we[i] : switch_frame_fifo_tx_we[i]),
+			.we(frame_fifo_tx_we[i]),
 			.do(frame_fifo_tx_do[i]),
 			.clkr(PHY_TXC[i]),
 			.re(frame_fifo_tx_re[i]),
@@ -305,8 +247,8 @@ module TOP_L2_SWITCH #(
 			.full_flag(frame_fifo_tx_full_flag[i]),
 			.afull_flag(frame_fifo_tx_afull_flag[i]), 
 			// my original signal
-			.EOD_in(mutex_val_0[i] ? soc_frame_fifo_del : switch_frame_fifo_del),
-			.EOD_out(frame_fifo_tx_EOD_out[i])
+			.EOD_in(frame_fifo_del),
+			.EOD_out(frame_fifo_tx_EOD_out[i])		
 		);
 		
 		PHY_TX #(

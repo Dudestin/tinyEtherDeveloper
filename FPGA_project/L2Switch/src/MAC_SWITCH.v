@@ -33,6 +33,10 @@ module MAC_SWITCH #(
 		p3_fifo_afull,
 		p3_fifo_wren,
 		
+		// exclusive control
+		mutex_req,
+		mutex_val,
+		
 		mask_port // 1 means brock the port
 	);
 	localparam MAC_TABLE_ADDR_LEN = (PORT_TABLE_ADDR_LEN + 2);
@@ -66,6 +70,10 @@ module MAC_SWITCH #(
 	output wire o_fifo_del;
 	reg o_fifo_del_reg;
 	assign o_fifo_del = o_fifo_del_reg;
+	
+	// Exclusive Control
+	output reg  [3:0] mutex_req; // Index corresoponding to PHY_ID
+	input  wire [3:0] mutex_val;
 	
 	// Control Signal, usually came from a processor, to implement STP.
 	input wire [3:0] mask_port; // 0 means passage, 1 means blocking.
@@ -119,15 +127,16 @@ module MAC_SWITCH #(
 	assign h_TYPE    = header_fetched[15:0];	
 
 	/* STATE MACHINE */
-	reg [2:0] STATE;
-	localparam S_IDLE = 3'b000,
-		S_H_FETCH      = 3'b001,
-		S_SRC_SEARCH   = 3'b010,
-		S_SRC_REGISTER = 3'b011,
-		S_DST_SEARCH   = 3'b100,
-		S_TX_HEADER    = 3'b101,
-		S_TX_PAYLOAD   = 3'b110,
-		S_END          = 3'b111;
+	reg [3:0] STATE;
+	localparam S_IDLE  = 4'h0,
+		S_H_FETCH      = 4'h1,
+		S_SRC_SEARCH   = 4'h2,
+		S_SRC_REGISTER = 4'h3,
+		S_DST_SEARCH   = 4'h4,
+		S_AWAIT_MUTEX  = 4'h5,
+		S_TX_HEADER    = 4'h6,
+		S_TX_PAYLOAD   = 4'h7,
+		S_END          = 4'h8;
 
 	/* MAC Table implemented with CAM */
 	wire [MAC_TABLE_ADDR_LEN-1:0] table_write_addr;
@@ -203,6 +212,7 @@ module MAC_SWITCH #(
 			table_write_delete_reg <= 1'b0;
 			table_write_enable_reg <= 1'b0;
 			table_compare_data_reg <= 1'b0;
+			mutex_req      <= 4'b0;
 			match_port_reg <= 4'b0;
 			cnt_reg  <= 4'b0;
 		end
@@ -223,7 +233,7 @@ module MAC_SWITCH #(
 			if (STATE == S_IDLE)
 			begin
 				cnt_reg <= 5'b0;
-				if (~h_fifo_empty & ~h_IS_CTRL_FRAME) // don't process control frame
+				if (~h_fifo_empty & ~h_IS_CTRL_FRAME) // ignore control frame
 				begin
 					header_fetched <= h_fifo_dout;
 					STATE          <= S_H_FETCH;
@@ -284,16 +294,26 @@ module MAC_SWITCH #(
 					if (h_FRAME_VALID)   // if frame is not broken.
 					begin
 						if (table_match) // if exists, cast the frame
-							match_port_reg <= match_port & ~fifo_afull_list & ~mask_port_synced;
+							mutex_req <= match_port & ~mask_port_synced; // Acquire Mutex
 						else             // if not found, broadcast the frame
-							match_port_reg <= 4'b1111 & ~fifo_afull_list & ~(1 << h_PORT) & ~mask_port_synced;
-						end
-					else
-					begin // if frame is broken, destroy (don't send to any FIFO) the frame
-						match_port_reg <= 4'b0000;
+							mutex_req <= 4'b1111 & ~(1 << h_PORT) & ~mask_port_synced; // Acquire Mutex		
 					end
-					STATE   <= S_TX_HEADER;
+					else
+					begin // if frame is broken, discard(don't send to any FIFO) the frame
+						mutex_req <= 4'b0000;
+					end
 					cnt_reg <= 5'b0;
+					STATE <= S_AWAIT_MUTEX;	
+				end
+			end
+			
+			/* await aquiring corresponding PHY-FIFO's MUTEX */
+			else if (STATE == S_AWAIT_MUTEX)
+			begin
+				if (mutex_val == mutex_req) // await aquiring all need mutex 
+				begin
+					match_port_reg <= mutex_req & ~fifo_afull_list; // if fifo is also full, discard the frame. 
+					STATE <= S_TX_HEADER;
 				end
 			end
 
@@ -357,6 +377,7 @@ module MAC_SWITCH #(
 				o_fifo_wren_reg <= 4'b0;
 				o_fifo_del_reg  <= 1'b0;
 				b_fifo_rden_reg <= 1'b0;
+				mutex_req       <= 4'b0; // release PHY-FIFO
 				cnt_reg <= 5'b1; 
 				if (cnt_reg)
 				begin
@@ -369,6 +390,7 @@ module MAC_SWITCH #(
 			else
 			begin
 				STATE <= S_END;
+				mutex_req <= 4'b0;
 			end
 		end
 	end	
