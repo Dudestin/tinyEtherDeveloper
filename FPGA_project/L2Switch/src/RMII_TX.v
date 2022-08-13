@@ -47,11 +47,11 @@ module RMII_TX #(
 	
 	output wire [15:0] succ_tx_count_gray;
 	reg [15:0] succ_tx_count; // raw binary counter
-	my_gray2bin #(.WIDTH(16)) 
+	my_bin2gray #(.WIDTH(16)) 
 		succ_gray(.din(succ_tx_count), .dout(succ_tx_count_gray));
 	output wire [15:0] fail_tx_count_gray;
 	reg [15:0] fail_tx_count;
-	my_gray2bin #(.WIDTH(16))
+	my_bin2gray #(.WIDTH(16))
 		fail_gray(.din(fail_tx_count), .dout(fail_tx_count_gray));
 	
 	reg [2:0] STATE;

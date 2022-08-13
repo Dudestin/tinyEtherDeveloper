@@ -32,12 +32,12 @@ module RMII_RX(
     // monitor signal
 	output wire [15:0] succ_rx_count_gray;    
     reg [15:0] succ_rx_count;
-	my_gray2bin #(.WIDTH(16)) 
+	my_bin2gray #(.WIDTH(16)) 
 		succ_gray(.din(succ_rx_count), .dout(succ_rx_count_gray));
 		
     output wire [15:0] buff_OF_count_gray;
     reg [15:0] buff_OF_count;
-	my_gray2bin #(.WIDTH(16))
+	my_bin2gray #(.WIDTH(16))
 		buff_OF_gray (.din(buff_OF_count), .dout(buff_OF_count_gray));    
     
 	// state 
