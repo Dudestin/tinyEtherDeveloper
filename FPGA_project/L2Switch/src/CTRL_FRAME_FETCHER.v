@@ -101,6 +101,9 @@ module CTRL_FRAME_FETCHER #(
 			/* Config Interface */			
 			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h14)
 			begin
+				iomem_ready <= 1'b1;
+				/* read from config register*/
+				iomem_rdata <= cfg_do;	
 				/* write data */
 				if (iomem_wstrb[3])
 				begin

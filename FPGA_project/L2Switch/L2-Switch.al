@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-07-08 05:10:50</Project_Created_Time>
     <TD_Version>4.4.433</TD_Version>
-    <UCode>11110000</UCode>
+    <UCode>10001000</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -15,8 +15,6 @@
             <File>al_ip/ram_dp_ip.v</File>
             <File>src/sync_2ff.v</File>
             <File>src/m_seq_32.v</File>
-            <File>src/PHY_TX.v</File>
-            <File>src/PHY_RX.v</File>
             <File>src/MAC_SWITCH.v</File>
             <File>src/MAC_DEC.v</File>
             <File>src/verilog-cam/rtl/cam.v</File>
@@ -49,6 +47,8 @@
             <File>src/soc/rtl/picorv32.v</File>
             <File>src/soc/rtl/sys_sdram.v</File>
             <File>src/soc/rtl/al_ip/sram9k.v</File>
+            <File>src/SNI_RX.v</File>
+            <File>src/SNI_TX.v</File>
         </Verilog>
         <ADC_FILE>src/soc/constraints/io.adc</ADC_FILE>
         <SDC_FILE/>
@@ -56,7 +56,7 @@
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
-        <MODULE>my_soc</MODULE>
+        <MODULE>TOP_L2_SWITCH</MODULE>
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Property>
@@ -68,8 +68,8 @@
         </BitgenProperty::GeneralOption>
     </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-08-13 12:31:31</Step_Last_Change>
-        <Current_Step>60</Current_Step>
+        <Step_Last_Change>2022-08-14 04:55:29</Step_Last_Change>
+        <Current_Step>10</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>

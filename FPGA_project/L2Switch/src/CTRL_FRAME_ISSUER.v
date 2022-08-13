@@ -119,16 +119,16 @@ module CTRL_FRAME_ISSUER (
 			begin
 				iomem_ready <= 1'b1;
 				/* read from RAM */
-				iomem_rdata <= frame_ram [iomem_addr[3:0]];	
+				iomem_rdata <= frame_ram [iomem_addr[5:2]];	
 				/* write to RAM */
 				if (iomem_wstrb[3])
-					frame_ram [iomem_addr[3:0]] [31:24] <= iomem_wdata[31:24];
+					frame_ram [iomem_addr[5:2]] [31:24] <= iomem_wdata[31:24];
 				if (iomem_wstrb[2])
-					frame_ram [iomem_addr[3:0]] [23:16] <= iomem_wdata[23:16];
+					frame_ram [iomem_addr[5:2]] [23:16] <= iomem_wdata[23:16];
 				if (iomem_wstrb[1])
-					frame_ram [iomem_addr[3:0]] [15: 8] <= iomem_wdata[15: 8];
+					frame_ram [iomem_addr[5:2]] [15: 8] <= iomem_wdata[15: 8];
 				if (iomem_wstrb[0])
-					frame_ram [iomem_addr[3:0]] [ 7: 0] <= iomem_wdata[ 7: 0];
+					frame_ram [iomem_addr[5:2]] [ 7: 0] <= iomem_wdata[ 7: 0];
 			end
 		end
 	end
@@ -188,10 +188,10 @@ module CTRL_FRAME_ISSUER (
 					port_wren<= latched_config_port;
 					cnt_reg  <= cnt_reg + 1'b1;
 					case (cnt_reg[1:0])
-						2'd0: wr_word_reg <= frame_ram [cnt_reg[7:2]] [ 7: 0]; // little endian to big endian.
-						2'd1: wr_word_reg <= frame_ram [cnt_reg[7:2]] [15: 8];
-						2'd2: wr_word_reg <= frame_ram [cnt_reg[7:2]] [23:16];
-						2'd3: wr_word_reg <= frame_ram [cnt_reg[7:2]] [31:24];
+						2'd0: wr_word_reg <= frame_ram [cnt_reg[5:2]] [ 7: 0]; // little endian to big endian.
+						2'd1: wr_word_reg <= frame_ram [cnt_reg[5:2]] [15: 8];
+						2'd2: wr_word_reg <= frame_ram [cnt_reg[5:2]] [23:16];
+						2'd3: wr_word_reg <= frame_ram [cnt_reg[5:2]] [31:24];
 						default : wr_word_reg <= 8'b0;
 					endcase
 
