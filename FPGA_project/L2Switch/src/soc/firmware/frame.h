@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #define MAC_ADDR (0xAA_AA_AA_AA_AA_AA) // system MAC address (not each port's MAC address)
 #define BRIDGE_PRIORITY (32768)        // 0(high priority) to 65535, default : 32768
 /* if you desire to use this switch as STP root-bridge, active following statements */
@@ -10,55 +12,55 @@
 /* Ethernet Frame Header */
 /* 14 Bytes */
 struct HEADER {
-    unsigned char  DST_MAC[6];  // 6-Bytes
-    unsigned char  SRC_MAC[6];  // 6-Bytes
-    unsigned short TYPE;        // 2-Bytes
+    uint8_t  DST_MAC[6];  // 6-Bytes
+    uint8_t  SRC_MAC[6];  // 6-Bytes
+    uint16_t TYPE;        // 2-Bytes
 } __attribute__((__packed__));
 
 /* my original expanded header */
 /* 16 Bytes */
 /* used in RX only, don't use for TX !! */
 struct EXPAND_HEADER {
-    unsigned short PAD : 12;
-    unsigned char  FCS_CORRECT : 1;
-    unsigned char  IS_CTRL : 1;
-    unsigned char  PORT : 2; // frame comming port
+    uint16_t PAD : 12;
+    uint8_t  FCS_CORRECT : 1;
+    uint8_t  IS_CTRL : 1;
+    uint8_t  PORT : 2; // frame comming port
     struct HEADER orig_header;
 } __attribute__((__packed__));
 
 /* IEEE802.2 LLC */
 /* 3 Bytes */
 struct LLC {
-    unsigned char DSAP;
-    unsigned char SSAP;
-    unsigned char CTRL;
+    uint8_t DSAP;
+    uint8_t SSAP;
+    uint8_t CTRL;
 } __attribute__((__packed__));
 
 /* BPDU ver.0 format */
 /* 38 + 8(PAD) = 46 Bytes */
 struct BPDU_ver0 {
     struct LLC llc;
-    unsigned short PROT_ID;  // 2-bytes
-    unsigned char  PROT_VER;
-    unsigned char  BPDU_TYPE;
-    unsigned char  BPDU_FLAG;
-    unsigned long  ROOT_ID;  // 8-Bytes
-    unsigned int   ROOT_PATH_COST; // 4-Bytes
-    unsigned long  BRID_ID;  // 8-Bytes
-    unsigned short PORT_IDEN;// 2-Bytes
-    unsigned short MSG_AGE;  // 2-Bytes
-    unsigned short MAX_AGE;  // 2-Bytes
-    unsigned short HEL_TIME; // 2-Bytes
-    unsigned short FRWD_DLY; // 2-Bytes    
-    unsigned char  PAD[7];   // padding, 7-Bytes
+    uint16_t PROT_ID;  // 2-bytes
+    uint8_t  PROT_VER;
+    uint8_t  BPDU_TYPE;
+    uint8_t  BPDU_FLAG;
+    uint64_t ROOT_ID;  // 8-Bytes
+    uint32_t ROOT_PATH_COST; // 4-Bytes
+    uint64_t BRID_ID;  // 8-Bytes
+    uint16_t PORT_IDEN;// 2-Bytes
+    uint16_t MSG_AGE;  // 2-Bytes
+    uint16_t MAX_AGE;  // 2-Bytes
+    uint16_t HEL_TIME; // 2-Bytes
+    uint16_t FRWD_DLY; // 2-Bytes    
+    uint8_t  PAD[7];   // padding, 7-Bytes
 } __attribute__((__packed__));
 
 /* PAUSE defined as IEEE802.3X */
 /* 4 + 42 = 46 Bytes (and Padding) */
 struct PAUSE {
-    unsigned short OPR_CODE; // 2-Bytes
-    unsigned short ABT_TIME; // 2-Bytes
-    unsigned char  PAD[42];  // 42-Bytes
+    uint16_t OPR_CODE; // 2-Bytes
+    uint16_t ABT_TIME; // 2-Bytes
+    uint8_t  PAD[42];  // 42-Bytes
 } __attribute__((__packed__));
 
 /* Payload memory layout */
@@ -72,7 +74,7 @@ union  PAYLOAD {
 struct FRAME_TX {
     struct HEADER header; // 14-Bytes
     union  PAYLOAD payload; // 46-Bytes
-    unsigned int FCS; // 4-Bytes
+    uint32_t FCS; // 4-Bytes
 } __attribute__((__packed__));
 
 /* FRAME layout for RX module */
@@ -83,5 +85,5 @@ struct FRAME_TX {
 struct FRAME_RX {
     struct EXPAND_HEADER exp_header; // 16-Bytes
     union  PAYLOAD payload; // 46-Bytes
-    unsigned int FCS; // 4-Bytes
+    uint32_t FCS; // 4-Bytes
 } __attribute__((__packed__));
