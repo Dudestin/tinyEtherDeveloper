@@ -62,8 +62,8 @@ module RMII_TX #(
        	S_COL      = 3'b100,
        	S_END      = 3'b111;
        	
-    /* general purpose counter */
-    reg [7:0] cnt_reg;
+    	/* general purpose counter */
+    	reg [7:0] cnt_reg;
     
     /* S_COL : random counter */
 	reg [7:0] rand_cnt_reg; 
