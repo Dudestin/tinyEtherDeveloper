@@ -1,5 +1,5 @@
 /* Push frame to PHY-FIFO */
-/* Only 64 Byte Frame Transmitter (16-word) */
+/* Only 64 (include hardware calculated 4-Byte FCS section) Byte Frame Transmitter (16-word) */
 
 /* TODO [x] : impl. PHY-FIFO mutex system */
 
@@ -134,11 +134,18 @@ module CTRL_FRAME_ISSUER (
 		end
 
 		/* TX frame interface */
-		reg [1:0] STATE;
-		localparam S_IDLE = 2'd0,
-			S_WAIT = 2'd1, // wait PHY fifo ready.
-			S_TX   = 2'd2,
-			S_END  = 2'd3;
+		reg [2:0] STATE;
+		localparam S_IDLE = 3'd0,
+			S_WAIT = 3'd1, // wait PHY fifo ready.
+			S_TX   = 3'd2,
+            S_FSC  = 3'd3,
+			S_END  = 3'd4;
+
+		/* FCS calculation */
+		wire [31:0] crc_out;
+        reg  crc_en;
+        reg  crc_rst;
+		crc crc_impl (.data_in(o_fifo_din), .crc_en(crc_en), .crc_out(crc_out), .rst(~arst_n | crc_rst), .clk(clk));
 
 		/* local signal */
 		reg [3:0] latched_config_port;
@@ -156,6 +163,8 @@ module CTRL_FRAME_ISSUER (
 			if (~arst_n)
 			begin
 				STATE <= S_IDLE;
+                crc_en  <= 1'b0;
+                crc_rst <= 1'b0;
 				latched_config_port <= 4'b0;
 				cnt_reg   <= 8'b0;
 				port_wren <= 4'b0;
@@ -164,7 +173,10 @@ module CTRL_FRAME_ISSUER (
 			else
 			begin
 				/* default value */
+                crc_en <= 1'b0;
+                crc_rst <= 1'b0;
 				port_wren <= 4'b0;
+
 				case (STATE)
 					S_IDLE : 
 					begin
@@ -184,6 +196,7 @@ module CTRL_FRAME_ISSUER (
 
 					S_TX :
 					begin
+                        crc_en   <= 1'b1;
 						port_wren<= latched_config_port;
 						cnt_reg  <= cnt_reg + 1'b1;
 						case (cnt_reg[1:0])
@@ -194,29 +207,47 @@ module CTRL_FRAME_ISSUER (
 							default : o_fifo_din <= 8'b0;
 						endcase
 
-						if (cnt_reg == 8'd63) // reach tail of frame.
-						begin
-						    o_fifo_del <= 1'b1;
-						    STATE      <= S_END;	
-					        end
-					end
-				end
+                        if (cnt_reg == 8'd59) // reach tail of frame.
+                        begin
+                            cnt_reg    <= 8'b0;
+                            STATE      <= S_FCS;	
+                        end
+                    end
+   
+                    S_FCS :
+                    begin
+						port_wren<= latched_config_port;
+                        cnt_reg <= cnt_reg + 1'b1;
+                        case (cnt_reg[1:0])
+							2'd0: o_fifo_din <= crc_out[31:24];
+							2'd1: o_fifo_din <= crc_out[23:16];
+							2'd2: o_fifo_din <= crc_out[15: 8];
+							2'd3: 
+                            begin
+                                o_fifo_din <= crc_out[ 7: 0];
+                                o_fifo_del <= 1'b1;
+                                STATE <= S_END;
+                            end
+							default : o_fifo_din <= 8'b0;
+                        endcase
+                    end
 
-				S_END : 
-				begin
-					mutex_req   <= 4'b0; // release PHY-FIFO
-					STATE <= S_IDLE;
-				end
-			endcase
+                    S_END : 
+                    begin
+                        crc_rst <= 1'b1;     // reset CRC state
+                        mutex_req   <= 4'b0; // release PHY-FIFO
+                        STATE <= S_IDLE;
+                    end
+                endcase
+      
 
-			/* abort transmit */ 
-			if (config_abort && (STATE == S_END || STATE == S_IDLE))
-			begin
-				port_wren    <= 4'b0;
-				mutex_req    <= 4'b0;  // release PHY-FIFO
-				STATE <= S_END;
-			end
-		end
-	end
-
-	endmodule
+                /* abort transmit */ 
+                if (config_abort && (STATE == S_END || STATE == S_IDLE))
+                begin
+                    port_wren    <= 4'b0;
+                    mutex_req    <= 4'b0;  // release PHY-FIFO
+                    STATE <= S_END;
+                end
+            end
+        end
+end
