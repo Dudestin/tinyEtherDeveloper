@@ -97,6 +97,9 @@ always @* begin
     end
 end
 
+assign match = |match_many_reg;
+
+/*
 priority_encoder #(
     .WIDTH(RAM_DEPTH),
     .LSB_PRIORITY("HIGH")
@@ -107,6 +110,7 @@ priority_encoder_inst (
     .output_encoded(match_addr),
     .output_unencoded(match_single)
 );
+*/
 
 integer i;
 
