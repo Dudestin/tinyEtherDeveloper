@@ -155,8 +155,8 @@ module CTRL_FRAME_FETCHER #(
 	/* local signal */
 	reg  [10:0] cnt_reg; // 2^11 = 2048
 	wire [47:0] dst_mac = h_fifo_dout[111:64];
-	wire is_bpds_frame  = (dst_mac == 48'h01_80_C2_00_00_00); 
-	wire is_pause_frame = (dst_mac == 48'h01_80_C2_00_00_01);
+	wire is_bpds_frame  = (dst_mac[7:0] == 8'h00); 
+	wire is_pause_frame = (dst_mac[7:0] == 8'h01);
 	
 	// convert endian, because riscv support little-endian, 
 	// but ethernet frame follow big endian
@@ -193,8 +193,8 @@ module CTRL_FRAME_FETCHER #(
 					if (~h_fifo_empty & h_fifo_dout[114]) // control frame is provided
 					begin
 						STATE <= S_HEADER;
-					 	// if full, don't write to RAM. but read from FIFOs to avoid stall 	
-						if (fifo_full)
+					 	// if full or FCS invalid , don't write to RAM. but read from FIFOs to avoid stall 	
+						if (fifo_full | ~h_fifo_dout[115])
 							destroy <= 1'b1;
 						else
 							destroy <= 1'b0;

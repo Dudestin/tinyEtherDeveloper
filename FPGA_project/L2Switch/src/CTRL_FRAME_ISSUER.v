@@ -138,7 +138,7 @@ module CTRL_FRAME_ISSUER (
 		localparam S_IDLE = 3'd0,
 			S_WAIT = 3'd1, // wait PHY fifo ready.
 			S_TX   = 3'd2,
-            S_FSC  = 3'd3,
+            S_FCS  = 3'd3,
 			S_END  = 3'd4;
 
 		/* FCS calculation */
@@ -235,6 +235,7 @@ module CTRL_FRAME_ISSUER (
                     S_END : 
                     begin
                         crc_rst <= 1'b1;     // reset CRC state
+                        cnt_reg <= 8'd0;
                         mutex_req   <= 4'b0; // release PHY-FIFO
                         STATE <= S_IDLE;
                     end
@@ -250,4 +251,4 @@ module CTRL_FRAME_ISSUER (
                 end
             end
         end
-end
+endmodule
