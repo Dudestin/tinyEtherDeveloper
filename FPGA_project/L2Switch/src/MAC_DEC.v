@@ -11,7 +11,7 @@ module MAC_DEC #(
 	i0_fifo_dout,
 	i0_fifo_empty,
 	i0_fifo_aempty,
-	i0_fifo_afull,
+	i0_fifo_afull,  // need to be synchronize !!
 	i0_fifo_rden,
 	i0_fifo_del,
 
@@ -19,7 +19,7 @@ module MAC_DEC #(
 	i1_fifo_dout,
 	i1_fifo_empty,
 	i1_fifo_aempty,
-	i1_fifo_afull,	
+	i1_fifo_afull,	// need to be synchronize !!
 	i1_fifo_rden,
 	i1_fifo_del,
 
@@ -27,7 +27,7 @@ module MAC_DEC #(
 	i2_fifo_dout,
 	i2_fifo_empty,
 	i2_fifo_aempty,
-	i2_fifo_afull,	
+	i2_fifo_afull,	// need to be synchronize !!
 	i2_fifo_rden,
 	i2_fifo_del,
 
@@ -35,7 +35,7 @@ module MAC_DEC #(
 	i3_fifo_dout,
 	i3_fifo_empty,
 	i3_fifo_aempty,
-	i3_fifo_afull,	
+	i3_fifo_afull,  // need to be synchronize !!
 	i3_fifo_rden,
 	i3_fifo_del,
 			
@@ -108,7 +108,7 @@ module MAC_DEC #(
 			
 	// BODY-FIFO
 	output wire [7:0] b_fifo_din;
-	input  wire b_fifo_afull;
+	input  wire b_fifo_afull; 
 	output wire b_fifo_wren;
 	output wire b_fifo_del;
 	reg [7:0] b_fifo_din_reg;
@@ -133,7 +133,9 @@ module MAC_DEC #(
 	assign i_fifo_aempty = {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
 	
 	wire [3:0] i_fifo_afull;
-	assign i_fifo_afull  = {i3_fifo_afull , i2_fifo_afull , i1_fifo_afull , i0_fifo_afull };
+	wire [3:0] i_fifo_afull_sync; // afull is on write clock domain, so need to be synchronize;
+	assign i_fifo_afull = {i3_fifo_afull , i2_fifo_afull , i1_fifo_afull , i0_fifo_afull};
+	vec_sync_2ff sync_afull #(.WIDTH(4)) (.clk(clk), .din(i_fifo_afull), .dout(i_fifo_afull_sync));
 	
 	// MUX by phy_id_reg
 	wire [7:0] i_fifo_dout;
@@ -234,7 +236,7 @@ module MAC_DEC #(
 			if (STATE == S_IDLE)
 			begin
 				crc_rst_reg <= 1'b1;
-				// Require h_fifo has space & b_fifo_afull has space able to store 1,514B
+				// Require h_fifo has space & b_fifo has space able to store 1,514B
 				// This assumption will achieve circuit simplicity.
 				if (~h_fifo_full & ~b_fifo_afull)
 				begin
@@ -249,7 +251,7 @@ module MAC_DEC #(
 						default : ;
 					endcase
 					
-					casex (i_fifo_afull)
+					casex (i_fifo_afull_sync)
 						4'bxxx1 : phy_id_reg <= 2'd0;
 						4'bxx10 : phy_id_reg <= 2'd1;
 						4'bx100 : phy_id_reg <= 2'd2;
