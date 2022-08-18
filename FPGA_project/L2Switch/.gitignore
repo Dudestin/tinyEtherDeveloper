@@ -4,3 +4,4 @@
 *.tsm
 *watcherInst.v
 chip_watcher/
+sim/
