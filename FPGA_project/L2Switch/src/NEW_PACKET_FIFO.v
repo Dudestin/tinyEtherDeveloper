@@ -1,11 +1,13 @@
-// can store 16384 words (~= 10 frame)
+// Synchronous FIFO, for Packet FIFO.
+// assume clkw, clkr is same.
+// can store 16384 words (~= 10 full-frame)
 // used in BODY_FIFO implementation.
 
 module NEW_PACKET_FIFO #(
-	parameter integer AEMPTY_CNT = 64,
-	parameter integer AFULL_CNT = 15000
+	parameter integer AEMPTY_CNT = 1500, // IP MTU
+	parameter integer AFULL_CNT = 16000  // ~= 16384 - MTU
 )( 
-	rst,
+	arst_n,
 	di, clkw, we,
 	do, clkr, re,
 	empty_flag, aempty_flag,
@@ -14,7 +16,10 @@ module NEW_PACKET_FIFO #(
 	EOD_in, EOD_out
 );
 
-	input wire rst;
+	input wire arst_n;
+	wire rst_n;
+	sync_2ff rst_sync (.clk(clkw), .din(arst_n), .dout(rst_n));
+	
 	input wire [7:0] di;
 	input wire clkw, we;
 	input wire clkr,re;
@@ -44,16 +49,16 @@ module NEW_PACKET_FIFO #(
 		.dob(new_dout), .dib(9'bz),    .addrb(radr[WA-1:0]), .clkb(clkr), .web(1'b0), .rstb(rst));
 
 	/* write address */
-	always @(posedge clkw or posedge rst) begin
-		if(rst)
+	always @(posedge clkw or negedge rst_n) begin
+		if(~rst)
 			wadr <= {(WA+1){1'b0}};
 		else if(we & ~full_flag)
 			wadr <= wadr + 1'b1;
 	end
 
 	/* read address */
-	always @(posedge clkw or posedge rst) begin
-		if(rst)
+	always @(posedge clkw or negedge rst_n) begin
+		if(~rst)
 			radr <= {(WA+1){1'b0}};
 		else if(re & ~empty_flag)
 			radr <= radr + 1'b1;
@@ -68,8 +73,8 @@ module NEW_PACKET_FIFO #(
 	wire [WA:0] diff_adr = wadr - radr;
 	
 	reg afull_flag_reg;
-	always @(posedge clkw or posedge rst) begin
-		if (rst)
+	always @(posedge clkw or negedge rst_n) begin
+		if (~rst)
 			afull_flag_reg <= 1'b0;
 		else
 			afull_flag_reg <= ~(~diff_adr[WA] & (diff_adr[WA-1:0] <= AFULL_CNT));
@@ -78,13 +83,12 @@ module NEW_PACKET_FIFO #(
 
 	/* also empty flag */	
 	reg aempty_flag_reg;
-	always @(posedge clkw or posedge rst) begin
-		if (rst)
+	always @(posedge clkw or negedge rst_n) begin
+		if (~rst)
 			aempty_flag_reg <= 1'b1;
 		else
 			aempty_flag_reg <= ~(~diff_adr[WA] & (diff_adr[WA-1:0] >= AEMPTY_CNT));
 	end
 	assign aempty_flag = aempty_flag_reg;
-	
 	
 endmodule
