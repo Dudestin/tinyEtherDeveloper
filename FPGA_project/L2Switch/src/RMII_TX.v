@@ -55,12 +55,12 @@ module RMII_TX #(
 		fail_gray(.din(fail_tx_count), .dout(fail_tx_count_gray));
 	
 	reg [2:0] STATE;
-	localparam S_IDLE = 3'b000,
-       	S_PREAMBLE = 3'b001,
-       	S_BODY     = 3'b011,
-       	S_FCS      = 3'b111,
-       	S_COL      = 3'b100,
-       	S_END      = 3'b111;
+	localparam S_IDLE = 3'd0,
+       	S_PREAMBLE = 3'd1,
+       	S_BODY     = 3'd2,
+       	S_FCS      = 3'd3,
+       	S_COL      = 3'd4,
+       	S_END      = 3'd5;
        	
     	/* general purpose counter */
     	reg [7:0] cnt_reg;
@@ -80,6 +80,8 @@ module RMII_TX #(
         	TXD0_reg <= 1'b0;
         	TXD1_reg <= 1'b0;
         	TXEN_reg <= 1'b0;
+			succ_tx_count <= 16'b0;
+			fail_tx_count <= 16'b0;
         	cnt_reg  <= 8'b0;
         	rand_cnt_reg <= 8'b0;
         	fifo_rden<= 1'b0;
@@ -105,17 +107,16 @@ module RMII_TX #(
     			S_PREAMBLE : 
     			begin
     				cnt_reg <= cnt_reg + 1'b1;
+    					TXEN_reg <= 1'b1;
     				if (cnt_reg < 8'd30)
     				begin
     					TXD0_reg <= 1'b1;
     					TXD1_reg <= 1'b0;
-    					TXEN_reg <= 1'b1;
     				end
     				else if (cnt_reg == 8'd31)
     				begin
     					TXD0_reg <= 1'b1;
     					TXD1_reg <= 1'b1;
-    					TXEN_reg <= 1'b1;
     					cnt_reg <= 0;
     					STATE   <= S_BODY;
     				end
@@ -174,6 +175,7 @@ module RMII_TX #(
         		   wait to secure IFG, then go to S_IDLE */			
        			S_END : 
     			begin
+    				TXD0_reg <= 1'b0; TXD1_reg <= 1'b0;
              		cnt_reg     <= cnt_reg + 1'b1;
             		if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
             		begin
