@@ -70,14 +70,14 @@ module NEW_PACKET_FIFO #(
 	assign empty_flag = (radr == wadr);
 	
 	/* also full flag */
-	wire [WA:0] diff_adr = wadr - radr;
-	
+	wire [WA:0] diff_adr = {wadr[WA] ^ radr[WA], wadr[12:0]} - {1'b0, radr[12:0]};
+
 	reg afull_flag_reg;
 	always @(posedge clkw or negedge rst_n) begin
 		if (~rst)
 			afull_flag_reg <= 1'b0;
 		else
-			afull_flag_reg <= ~(~diff_adr[WA] & (diff_adr[WA-1:0] <= AFULL_CNT));
+			afull_flag_reg <= (diff_adr_w >= AFULL_CNT);
 	end
 	assign afull_flag = afull_flag_reg;
 
@@ -87,7 +87,7 @@ module NEW_PACKET_FIFO #(
 		if (~rst)
 			aempty_flag_reg <= 1'b1;
 		else
-			aempty_flag_reg <= ~(~diff_adr[WA] & (diff_adr[WA-1:0] >= AEMPTY_CNT));
+			aempty_flag_reg <= (diff_adr_r <= AEMPTY_CNT);
 	end
 	assign aempty_flag = aempty_flag_reg;
 	
