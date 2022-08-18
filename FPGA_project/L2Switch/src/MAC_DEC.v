@@ -12,6 +12,7 @@ module MAC_DEC #(
 	i0_fifo_empty,
 	i0_fifo_aempty,
 	i0_fifo_afull,  // need to be synchronize !!
+	i0_fifo_half,   // need to be synchronize !!
 	i0_fifo_rden,
 	i0_fifo_del,
 
@@ -20,6 +21,7 @@ module MAC_DEC #(
 	i1_fifo_empty,
 	i1_fifo_aempty,
 	i1_fifo_afull,	// need to be synchronize !!
+	i1_fifo_half,   // need to be synchronize !!
 	i1_fifo_rden,
 	i1_fifo_del,
 
@@ -28,6 +30,7 @@ module MAC_DEC #(
 	i2_fifo_empty,
 	i2_fifo_aempty,
 	i2_fifo_afull,	// need to be synchronize !!
+	i2_fifo_half,   // need to be synchronize !!
 	i2_fifo_rden,
 	i2_fifo_del,
 
@@ -36,6 +39,7 @@ module MAC_DEC #(
 	i3_fifo_empty,
 	i3_fifo_aempty,
 	i3_fifo_afull,  // need to be synchronize !!
+	i3_fifo_half,   // need to be synchronize !!
 	i3_fifo_rden,
 	i3_fifo_del,
 			
@@ -136,6 +140,11 @@ module MAC_DEC #(
 	wire [3:0] i_fifo_afull_sync; // afull is on write clock domain, so need to be synchronize;
 	assign i_fifo_afull = {i3_fifo_afull , i2_fifo_afull , i1_fifo_afull , i0_fifo_afull};
 	vec_sync_2ff sync_afull #(.WIDTH(4)) (.clk(clk), .din(i_fifo_afull), .dout(i_fifo_afull_sync));
+
+	wire [3:0] i_fifo_half;
+	wire [3:0] i_fifo_half_sync; // afull is on write clock domain, so need to be synchronize;
+	assign i_fifo_half = {i3_fifo_half, i2_fifo_half, i1_fifo_half, i0_fifo_half};
+	vec_sync_2ff sync_half #(.WIDTH(4)) (.clk(clk), .din(i_fifo_half), .dout(i_fifo_half_sync));
 	
 	// MUX by phy_id_reg
 	wire [7:0] i_fifo_dout;
@@ -251,6 +260,14 @@ module MAC_DEC #(
 						default : ;
 					endcase
 					
+					casex (i_fifo_half_sync)
+						4'bxxx1 : phy_id_reg <= 2'd0;
+						4'bxx10 : phy_id_reg <= 2'd1;
+						4'bx100 : phy_id_reg <= 2'd2;
+						4'b1000 : phy_id_reg <= 2'd3;
+						default : ;
+					endcase
+
 					casex (i_fifo_afull_sync)
 						4'bxxx1 : phy_id_reg <= 2'd0;
 						4'bxx10 : phy_id_reg <= 2'd1;
