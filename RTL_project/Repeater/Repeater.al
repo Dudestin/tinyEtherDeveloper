@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project>
+    <Project_Created_Time>2022-08-21 22:42:06</Project_Created_Time>
+    <TD_Version>4.6.14756</TD_Version>
+    <UCode>00000111</UCode>
+    <Name>Repeater</Name>
+    <HardWare>
+        <Family>EG4</Family>
+        <Device>EG4S20BG256</Device>
+    </HardWare>
+    <Source_Files>
+        <Verilog>
+            <File>src/TOP_RMII_Loopback.v</File>
+            <File>../common/src/FRAME_FIFO.v</File>
+            <File>../common/src/RMII_RX.v</File>
+            <File>../common/src/RMII_TX.v</File>
+            <File>../common/src/bin2gray.v</File>
+            <File>../common/src/gray2bin.v</File>
+            <File>../common/src/sync_2ff.v</File>
+            <File>../common/src/vec_sync_2ff.v</File>
+            <File>../common/al_ip/bram9k.v</File>
+            <File>../common/al_ip/bram32k.v</File>
+            <File>../common/src/m_seq_32.v</File>
+        </Verilog>
+        <ADC_FILE>constraints/io.adc</ADC_FILE>
+        <SDC_FILE>Repeater.sdc</SDC_FILE>
+        <CWC_FILE>tx.cwc</CWC_FILE>
+    </Source_Files>
+    <TOP_MODULE>
+        <LABEL/>
+        <MODULE>TOP_RMII_repeater</MODULE>
+        <CREATEINDEX>auto</CREATEINDEX>
+    </TOP_MODULE>
+    <Project_Settings>
+        <Step_Last_Change>2022-08-23 22:39:15</Step_Last_Change>
+        <Current_Step>60</Current_Step>
+        <Step_Status>true</Step_Status>
+    </Project_Settings>
+</Project>
