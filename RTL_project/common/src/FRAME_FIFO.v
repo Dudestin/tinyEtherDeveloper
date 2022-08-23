@@ -24,9 +24,9 @@ module FRAME_FIFO #(
 	input wire clkw, we;
 	input wire clkr,re;
 	input wire arst_n;
-	wire rst_r, rst_w;
-	sync_2ff rst_r_sync(.clk(clkr), .din(arst_n), .dout(rst_r));
-	sync_2ff rst_w_sync(.clk(clkw), .din(arst_n), .dout(rst_w));
+	wire rst_n_r, rst_n_w;
+	sync_2ff rst_r_sync(.clk(clkr), .din(arst_n), .dout(rst_n_r));
+	sync_2ff rst_w_sync(.clk(clkw), .din(arst_n), .dout(rst_n_w));
 
 	input wire [WD-1:0] di;
 
@@ -44,23 +44,23 @@ module FRAME_FIFO #(
 	wire [WD-1:0] rdat_0;
 	bram32k #(.DATA_WIDTH(WD)) bram32k_impl_0
 	( 
-		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we &~wadr[WA-1]), .rsta(rst_w), 
-		.dob(rdat_0), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(rst_r)
+		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we &~wadr[WA-1]), .rsta(~rst_n_w), 
+		.dob(rdat_0), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
 	);
 	
 	wire [WD-1:0] rdat_1;
 	bram32k #(.DATA_WIDTH(WD)) bram32k_impl_1
 	( 
-		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we & wadr[WA-1]), .rsta(rst_w), 
-		.dob(rdat_1), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(rst_r)
+		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we & wadr[WA-1]), .rsta(~rst_n_w), 
+		.dob(rdat_1), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
 	);
 	
 	assign do = (radr[WA-1] == 1'b0) ? rdat_0 : rdat_1;
 	
 	/* store delimiters */	
 	bram9k bram9k_impl ( 
-		.doa(), 	   .dia(EOD_in), .addra(wadr[WA-1:0]), .clka(clkw), .wea(we),  .rsta(rst_w), 
-		.dob(EOD_out), .dib(1'bz),   .addrb(radr[WA-1:0]), .clkb(clkr),  .web(1'b0), .rstb(rst_r)
+		.doa(), 	   .dia(EOD_in), .addra(wadr[WA-1:0]), .clka(clkw), .wea(we),  .rsta(~rst_n_w), 
+		.dob(EOD_out), .dib(1'bz),   .addrb(radr[WA-1:0]), .clkb(clkr),  .web(1'b0), .rstb(~rst_n_r)
 	);
 
 	/*********************************************************
@@ -76,7 +76,7 @@ module FRAME_FIFO #(
 	
 	always @(posedge clkw)
 	begin
-		if (~rst_w)
+		if (~rst_n_w)
 		begin
 			wadr      <= {(WA+1){1'b0}};
 			wadr_gray <= {(WA+1){1'b0}};
@@ -97,7 +97,7 @@ module FRAME_FIFO #(
 	my_gray2bin #(.WIDTH(WA+1)) gray2bin_impl0 (.din(radr_gray_sync), .dout(radr_sync));
 	
 	always @(posedge clkw) begin
-		if(~rst_w)
+		if(~rst_n_w)
 			full_flag <= 1'b0;
 		else
 			full_flag <= (wadr_next[WA:0] == {~radr_sync[WA], radr_sync[WA-1:0]});
@@ -108,7 +108,7 @@ module FRAME_FIFO #(
 		= {radr_sync[WA] ^ wadr_next[WA], wadr_next[12:0]} - {1'b0, radr_sync[12:0]};
 
 	always @(posedge clkw) begin
-		if(~rst_w)
+		if(~rst_n_w)
 			afull_flag <= 1'b1;
 		else
 			afull_flag <= (diff_adr_w >= AFULL_CNT);
@@ -117,7 +117,7 @@ module FRAME_FIFO #(
 	/* half fill flag @ write clock */
 	always @(posedge clkw)
 	begin
-		if (~rst_r)
+		if (~rst_n_r)
 			half_flag <= 1'b1;
 		else
 			half_flag <= (diff_adr_w >= HALF_CNT);
@@ -134,7 +134,7 @@ module FRAME_FIFO #(
 	
 	always @(posedge clkr)
 	begin
-		if (~rst_r)
+		if (~rst_n_r)
 		begin
 			radr      <= {(WA+1){1'b0}};
 			radr_gray <= {(WA+1){1'b0}};
@@ -155,7 +155,7 @@ module FRAME_FIFO #(
 	my_gray2bin #(.WIDTH(WA+1)) gray2bin_impl1 (.din(wadr_gray_sync), .dout(wadr_sync));
 	
 	always @(posedge clkr) begin
-		if(~rst_r)
+		if(~rst_n_r)
 			empty_flag <= 1'b1;
 		else
 			empty_flag <= (radr_next == wadr_sync);
@@ -166,7 +166,7 @@ module FRAME_FIFO #(
 		= {wadr_sync[WA] ^ radr_next[WA], wadr_sync[12:0]} - {1'b0, radr_next[12:0]};
 
 	always @(posedge clkr) begin
-		if(~rst_r)
+		if(~rst_n_r)
 			aempty_flag <= 1'b1;
 		else
 			aempty_flag <= (diff_adr_r <= AEMPTY_CNT);

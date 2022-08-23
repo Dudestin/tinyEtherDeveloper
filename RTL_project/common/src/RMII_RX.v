@@ -7,7 +7,7 @@ module RMII_RX(
 	// Original FIFO Signal
 	fifo_EOD_in,
 	// RMII signal
-	REF_CLK, CRS, RXD0, RXD1,
+	REF_CLK, CRS_DV, RXD0, RXD1,
 	
 	// monitor signal
 	succ_rx_count_gray, // 16-bit, gray-code
@@ -20,15 +20,15 @@ module RMII_RX(
 	input  wire REF_CLK;
     input  wire RXD0;
     input  wire RXD1;
-    input  wire CRS;
+    input  wire CRS_DV;
     
     // FIFO Interface signal
     input  wire fifo_afull;       // fifo also_full
-    output wire [7:0] fifo_din;
-    output wire fifo_wren;
+    output reg [7:0] fifo_din;
+    output reg fifo_wren;
 	// Original FIFO signal    
-    output wire fifo_EOD_in;      // indicates End of Data. Useful to detect frame end.
-    
+    output reg fifo_EOD_in;      // indicates End of Data. Useful to detect frame end.
+     
     // monitor signal
 	output wire [15:0] succ_rx_count_gray;    
     reg [15:0] succ_rx_count;
@@ -50,11 +50,27 @@ module RMII_RX(
    	reg [7:0] seq;
    	reg [1:0] counter;
 
-	assign fifo_din = seq;
-	// store to fifo 1Byte cycle
-	assign fifo_wren = (counter == 2'd3);
-	// assign fifo_wren = 1'b1;	
-	assign fifo_EOD_in = (~CRS && (STATE == S_BODY));
+	reg RXD0_lat;
+	reg RXD1_lat;
+	reg CRS_DV_lat;
+	
+	wire DV = CRS_DV | CRS_DV_lat; // demodulate DV (Data Valid) Signal
+	
+	always @(posedge REF_CLK or negedge arst_n)
+	begin
+		if (~arst_n)
+		begin
+			RXD0_lat <= 1'b0;
+			RXD1_lat <= 1'b0;
+			CRS_DV_lat <= 1'b0;		
+		end else begin
+			RXD0_lat <= RXD0;
+			RXD1_lat <= RXD1;
+			CRS_DV_lat <= CRS_DV;
+		end
+	end
+	
+	// assign fifo_EOD_in = (~DV && (STATE == S_BODY));
 	
 	always @(posedge REF_CLK or negedge arst_n)
 	begin
@@ -65,13 +81,19 @@ module RMII_RX(
 			counter <= 2'b0;
 			succ_rx_count <= 16'b0;
 			buff_OF_count <= 16'b0;
+			fifo_wren <= 1'b0;
+			fifo_din  <= 8'b0;
+			fifo_EOD_in <= 1'b0;
 		end
 		else
 		begin
-			seq <= {seq[5:0], RXD0, RXD1};
+			seq <= {RXD1_lat, RXD0_lat, seq[7:2]};
+			fifo_wren <= 1'b0;
+			fifo_EOD_in <= 1'b0;
 			if (STATE == S_IDLE)
 			begin
-				if (CRS)
+				counter <= 2'b0;
+				if (CRS_DV)
 					if (fifo_afull)
 						buff_OF_count <= buff_OF_count + 1'b1;
 					else
@@ -80,26 +102,29 @@ module RMII_RX(
 			
 			else if (STATE == S_PREAMBLE)
 			begin
-				if (~CRS)
+				if (~CRS_DV)
 					STATE <= S_IDLE;
-				else if (seq == 8'b1010_1011) // detect SFD
+				else if (seq == 8'b1101_0101) // detect SFD
 					STATE <= S_BODY;
 			end
 						
 			else if (STATE == S_BODY)
-			begin
+			begin	
 				counter <= counter + 2'b1;
-				if (~CRS)
+				if (counter[1:0] == 2'b11)
 				begin
-					STATE <= S_END;
+					fifo_din  <= seq;
+					fifo_wren <= 1'b1;
+					if (~DV)
+					begin
+						fifo_EOD_in <= 1'b1;
+						STATE <= S_END;
+					end
 				end
-		
-				// store to fifo 1-Byte cycle
 			end
 			
 			else if (STATE == S_END)
 			begin
-				counter <= 2'b0;
 				STATE   <= S_IDLE;
 			end
 

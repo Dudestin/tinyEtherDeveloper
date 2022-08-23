@@ -9,7 +9,7 @@ module RMII_TX #(
 	// Original FIFO signal
 	fifo_EOD_out,
 	// RMII signal
-	REF_CLK, TXD0, TXD1, TX_EN, CRS, 
+	REF_CLK, TXD0, TXD1, TX_EN, CRS_DV, 
 	
 	// config
 	duplex_mode, // 1 means full-duplex, 0 means half-duplex
@@ -30,7 +30,7 @@ module RMII_TX #(
 	output wire TXD0;
 	output wire TXD1;
 	output wire TX_EN;
-	input  wire CRS;
+	input  wire CRS_DV;
 	
 	reg TXD0_reg;
 	reg TXD1_reg;
@@ -43,7 +43,7 @@ module RMII_TX #(
 	
 	// pseudo collision detection, enable when Half-duplex mode.
 	wire COL;
-	assign COL = duplex_mode ? 1'b0 : CRS & TX_EN;
+	assign COL = duplex_mode ? 1'b0 : CRS_DV & TX_EN;
 	
 	output wire [15:0] succ_tx_count_gray;
 	reg [15:0] succ_tx_count; // raw binary counter
@@ -71,8 +71,11 @@ module RMII_TX #(
 	/* rand value generater */
 	wire [31:0] rand_value;
 	m_seq_32 randgen(.clk(REF_CLK), .reset(arst_n), .mseq32(rand_value));
+	
+	reg [7:0] fetched_seq;
+	reg fetched_EOD;
        	
-    always @(posedge REF_CLK or arst_n)
+    always @(posedge REF_CLK or negedge arst_n)
     	if (~arst_n)
     	begin
     		cnt_reg <= 8'b0;
@@ -90,13 +93,13 @@ module RMII_TX #(
     	begin
     		/* default register value */
     		fifo_rden <= 1'b0;
-    		TXEN_reg  <= 1'b0;
     		  		
     		case (STATE)
     			S_IDLE : 
     			begin
     				TXD0_reg <= 1'b0; TXD1_reg <= 1'b0;
-            		if (~fifo_aempty & ~(CRS & ~duplex_mode)) // fifo has some data & CRS is 0
+    				TXEN_reg <= 1'b0;
+            		if (~fifo_aempty & ~(CRS_DV & ~duplex_mode)) // fifo has some data & CRS is 0
             		begin
             	        rand_cnt_reg  <= rand_value[7:0]; // used in S_COL	
                 		STATE         <= S_PREAMBLE;
@@ -107,7 +110,7 @@ module RMII_TX #(
     			S_PREAMBLE : 
     			begin
     				cnt_reg <= cnt_reg + 1'b1;
-    					TXEN_reg <= 1'b1;
+    				TXEN_reg <= 1'b1;
     				if (cnt_reg < 8'd30)
     				begin
     					TXD0_reg <= 1'b1;
@@ -118,6 +121,9 @@ module RMII_TX #(
     					TXD0_reg <= 1'b1;
     					TXD1_reg <= 1'b1;
     					cnt_reg <= 0;
+    					fetched_seq <= fifo_dout;
+    					fetched_EOD <= 1'b0;
+    					fifo_rden <= 1'b1;
     					STATE   <= S_BODY;
     				end
     			end
@@ -126,26 +132,30 @@ module RMII_TX #(
     			S_BODY : 
     			begin
     				cnt_reg <= cnt_reg + 1'b1;
-    				TXD0_reg <= fifo_dout[{~cnt_reg[1:0], 1'b1}];
-    				TXD1_reg <= fifo_dout[{~cnt_reg[1:0], 1'b0}];
+    				TXD0_reg <= fetched_seq[0];
+    				TXD1_reg <= fetched_seq[1];
     				TXEN_reg <= 1'b1;
     				if (cnt_reg[1:0] == 2'd3)
     				begin
     					cnt_reg <= 8'b0;
+    					fetched_seq <= fifo_dout; // load new byte
+    					fetched_EOD <= fifo_EOD_out; // fetch eod
     					fifo_rden <= 1'b1;
-    					if (fifo_EOD_out)
-    					begin
+						if (fetched_EOD)
+						begin
     						STATE <= S_END;
-    						succ_tx_count <= succ_tx_count + 1'b1;
-    					end
+    						fifo_rden <= 1'b0;
+    						succ_tx_count <= succ_tx_count + 1'b1;							
+						end    					
     					else if (fifo_empty)
     					begin
     						STATE <= S_END;
 							fifo_rden <= 1'b0;
     						fail_tx_count <= fail_tx_count + 1'b1;
     					end
+    				end else begin
+    					fetched_seq <= {2'b0, fetched_seq[7:2]}; // shift sequence
     				end
-    			
     			end
     			
     			/* not implemented yet */
@@ -160,6 +170,7 @@ module RMII_TX #(
         		// then go to S_END 			
       			S_COL : 
     			begin
+    				TXEN_reg <= 1'b0;
          			// Discard remain data from fifo.
         			fifo_rden <= ~fifo_EOD_out;
         			if (fifo_EOD_out)
@@ -177,6 +188,7 @@ module RMII_TX #(
        			S_END : 
     			begin
     				TXD0_reg <= 1'b0; TXD1_reg <= 1'b0;
+    				TXEN_reg <= 1'b0;
              		cnt_reg     <= cnt_reg + 1'b1;
             		if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
             		begin

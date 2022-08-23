@@ -33,7 +33,7 @@ module my_gray2bin #(
    //=====================
    generate 
       for (i=0; i<WIDTH; i=i+1)
-      begin
+      begin : gen_for
          assign dout[i] = ^ din[WIDTH-1:i];
       end
    endgenerate
