@@ -1,7 +1,0 @@
-*.bak
-*.rpt
-*.timing
-*.tsm
-*watcherInst.v
-chip_watcher/
-sim/
