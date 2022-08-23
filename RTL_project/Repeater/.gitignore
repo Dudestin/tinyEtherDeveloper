@@ -1,0 +1,6 @@
+*.al
+*.sdc
+*.timing
+*.tsm
+*.cwc
+*_watcherInst.v
