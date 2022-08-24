@@ -16,7 +16,8 @@ module FRAME_FIFO #(
 	full_flag, afull_flag,
 	// my original signal
 	half_flag, // half of FIFO occupied, useful to implement smart schedular
-	EOD_in, EOD_out
+	EOD_in, EOD_out,
+	frame_exist
 );
 	localparam integer WA=13;
 	localparam integer WD=8;
@@ -37,6 +38,7 @@ module FRAME_FIFO #(
 	// my original signal
 	input  wire EOD_in;
 	output wire EOD_out;
+	output reg  frame_exist;
 	
 	reg[WA:0] wadr;
 	reg[WA:0] radr;
@@ -87,6 +89,27 @@ module FRAME_FIFO #(
 			wadr_gray <= wadr_gray_next; // gray
 		end
 	end
+	
+	/* eod counter */
+	reg [7:0] weod;
+	reg [7:0] weod_gray;
+	wire [7:0] weod_next = weod + (we & EOD_in & ~full_flag);
+	wire [7:0] weod_gray_next = weod_next ^ (weod_next >> 1'b1);
+	
+	always @(posedge clkw)
+	begin
+		if (~rst_n_w)
+		begin
+			weod      <= 8'b0;
+			weod_gray <= 8'b0;
+		end
+		else
+		begin
+			weod      <= weod_next;      // bin
+			weod_gray <= weod_gray_next; // gray
+		end
+	end	
+	
 
 	/* 2FF-sync of rptr */
 	wire [WA:0] radr_gray_sync;
@@ -145,6 +168,26 @@ module FRAME_FIFO #(
 			radr_gray <= radr_gray_next; // gray
 		end
 	end
+	
+	/* eod counter */
+	reg [7:0] reod;
+	reg [7:0] reod_gray;
+	wire [7:0] reod_next = reod + (re & EOD_out & ~empty_flag);
+	wire [7:0] reod_gray_next = reod_next ^ (reod_next >> 1'b1);
+	
+	always @(posedge clkr)
+	begin
+		if (~rst_n_r)
+		begin
+			reod      <= 8'b0;
+			reod_gray <= 8'b0;
+		end
+		else
+		begin
+			reod      <= reod_next;      // bin
+			reod_gray <= reod_gray_next; // gray
+		end
+	end
 
 	/* 2FF-sync of wptr */
 	wire [WA:0] wadr_gray_sync;
@@ -170,6 +213,17 @@ module FRAME_FIFO #(
 			aempty_flag <= 1'b1;
 		else
 			aempty_flag <= (diff_adr_r <= AEMPTY_CNT);
+	end
+	
+	/* frame exist flag @ read clock */
+	wire [7:0] weod_sync;
+	my_gray2bin #(.WIDTH(8)) weod_gray2bin_impl1 (.din(weod_gray_sync), .dout(weod_sync));
+	
+	always @(posedge clkr) begin
+		if(~rst_n_r)
+			frame_exist <= 1'b0;
+		else
+			frame_exist <= (reod_next != weod_sync);
 	end
 
 endmodule
