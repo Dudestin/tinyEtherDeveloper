@@ -215,6 +215,10 @@ module FRAME_FIFO #(
 			aempty_flag <= (diff_adr_r <= AEMPTY_CNT);
 	end
 	
+	/* 2FF-sync of weod */
+	wire [7:0] weod_gray_sync;
+	vec_sync_2ff #(.WIDTH(8)) weod_sync_impl (.clk(clkr), .din(weod_gray), .dout(weod_gray_sync));	
+	
 	/* frame exist flag @ read clock */
 	wire [7:0] weod_sync;
 	my_gray2bin #(.WIDTH(8)) weod_gray2bin_impl1 (.din(weod_gray_sync), .dout(weod_sync));

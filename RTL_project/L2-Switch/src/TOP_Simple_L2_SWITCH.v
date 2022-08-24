@@ -54,8 +54,10 @@ module TOP_Simple_L2_SWITCH #(
 	wire [3:0] frame_fifo_rx_aempty_flag;
 	wire [3:0] frame_fifo_rx_full_flag;
 	wire [3:0] frame_fifo_rx_afull_flag;
+	wire [3:0] frame_fifo_rx_half_flag;
 	wire [3:0] frame_fifo_rx_EOD_in;
 	wire [3:0] frame_fifo_rx_EOD_out;
+	wire [3:0] frame_fifo_rx_frame_exist;
 	genvar i;
 	generate
 		for (i = 0; i < PHY_NUM; i = i + 1)
@@ -73,7 +75,7 @@ module TOP_Simple_L2_SWITCH #(
 			.RXD(PHY_RXD[i])	
 		);
 		FRAME_FIFO frame_fifo_rx(
-			.rst(rst),
+			.arst_n(arst_n),
 			.di(frame_fifo_rx_fifo_din[i]),
 			.clkw(PHY_RXC[i]),
 			.we(frame_fifo_rx_fifo_wren[i]),
@@ -84,9 +86,11 @@ module TOP_Simple_L2_SWITCH #(
 			.aempty_flag(frame_fifo_rx_aempty_flag[i]),
 			.full_flag(frame_fifo_rx_full_flag[i]),
 			.afull_flag(frame_fifo_rx_afull_flag[i]), 
+			.half_flag(frame_fifo_rx_half_flag[i]),
 			// my original signal
 			.EOD_in(frame_fifo_rx_EOD_in[i]),
-			.EOD_out(frame_fifo_rx_EOD_out[i])	
+			.EOD_out(frame_fifo_rx_EOD_out[i]),
+			.frame_exist(frame_fifo_rx_frame_exist[i])
 		);
 		end
 	endgenerate
@@ -110,6 +114,8 @@ module TOP_Simple_L2_SWITCH #(
 		.i0_fifo_empty(frame_fifo_rx_empty_flag[0]),
 		.i0_fifo_aempty(frame_fifo_rx_aempty_flag[0]),
 		.i0_fifo_afull(frame_fifo_rx_afull_flag[0]),
+		.i0_fifo_half(frame_fifo_rx_half_flag[0]),
+		.i0_fifo_frame_exist(frame_fifo_rx_frame_exist[0]),
 		.i0_fifo_rden(frame_fifo_rx_fifo_rden[0]),
 		.i0_fifo_del(frame_fifo_rx_EOD_out[0]),
 
@@ -117,7 +123,9 @@ module TOP_Simple_L2_SWITCH #(
 		.i1_fifo_dout(frame_fifo_rx_fifo_dout[1]),
 		.i1_fifo_empty(frame_fifo_rx_empty_flag[1]),
 		.i1_fifo_aempty(frame_fifo_rx_aempty_flag[1]),
-		.i1_fifo_afull(frame_fifo_rx_afull_flag[1]),		
+		.i1_fifo_afull(frame_fifo_rx_afull_flag[1]),
+		.i1_fifo_half(frame_fifo_rx_half_flag[1]),
+		.i1_fifo_frame_exist(frame_fifo_rx_frame_exist[1]),				
 		.i1_fifo_rden(frame_fifo_rx_fifo_rden[1]),
 		.i1_fifo_del(frame_fifo_rx_EOD_out[1]),
 
@@ -125,7 +133,9 @@ module TOP_Simple_L2_SWITCH #(
 		.i2_fifo_dout(frame_fifo_rx_fifo_dout[2]),
 		.i2_fifo_empty(frame_fifo_rx_empty_flag[2]),
 		.i2_fifo_aempty(frame_fifo_rx_aempty_flag[2]),
-		.i2_fifo_afull(frame_fifo_rx_afull_flag[2]),		
+		.i2_fifo_afull(frame_fifo_rx_afull_flag[2]),
+		.i2_fifo_half(frame_fifo_rx_half_flag[2]),
+		.i2_fifo_frame_exist(frame_fifo_rx_frame_exist[2]),					
 		.i2_fifo_rden(frame_fifo_rx_fifo_rden[2]),
 		.i2_fifo_del(frame_fifo_rx_EOD_out[2]),
 
@@ -133,7 +143,9 @@ module TOP_Simple_L2_SWITCH #(
 		.i3_fifo_dout(frame_fifo_rx_fifo_dout[3]),
 		.i3_fifo_empty(frame_fifo_rx_empty_flag[3]),
 		.i3_fifo_aempty(frame_fifo_rx_aempty_flag[3]),
-		.i3_fifo_afull(frame_fifo_rx_afull_flag[3]),		
+		.i3_fifo_afull(frame_fifo_rx_afull_flag[3]),
+		.i3_fifo_half(frame_fifo_rx_half_flag[3]),
+		.i3_fifo_frame_exist(frame_fifo_rx_frame_exist[3]),			
 		.i3_fifo_rden(frame_fifo_rx_fifo_rden[3]),
 		.i3_fifo_del(frame_fifo_rx_EOD_out[3]),
 			
@@ -168,7 +180,7 @@ module TOP_Simple_L2_SWITCH #(
 	wire frame_fifo_mac_b_empty_flag;
 	wire frame_fifo_mac_b_EOD_out;
 	NEW_PACKET_FIFO packet_fifo_mac_b_fifo(
-		.rst(rst),
+		.arst_n(arst_n),
 		.di(b_fifo_din),
 		.clkw(clk),
 		.we(b_fifo_wren),
@@ -235,7 +247,7 @@ module TOP_Simple_L2_SWITCH #(
 	for (i = 0; i < PHY_NUM; i = i + 1)
 	begin : PHY_TX_INTERFACE
 		FRAME_FIFO frame_fifo_tx (
-			.rst(rst),
+			.arst_n(arst_n),
 			.di(frame_fifo_tx_di),
 			.clkw(clk),
 			.we(frame_fifo_tx_we[i]),

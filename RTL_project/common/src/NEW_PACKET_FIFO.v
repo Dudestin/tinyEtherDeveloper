@@ -16,14 +16,13 @@ module NEW_PACKET_FIFO #(
 	EOD_in, EOD_out
 );
 
+	input wire [7:0] di;
+	input wire clkw, we;
+	input wire clkr,re;
 	input wire arst_n;
 	wire rst_n;
 	sync_2ff rst_sync (.clk(clkw), .din(arst_n), .dout(rst_n));
 	
-	input wire [7:0] di;
-	input wire clkw, we;
-	input wire clkr,re;
-
 	output wire [7:0] do;
 	output wire empty_flag, aempty_flag;
 	output wire full_flag, afull_flag;
@@ -45,8 +44,8 @@ module NEW_PACKET_FIFO #(
 	reg[WA:0] radr;	
 	
 	BRAM9Kx32 bram9kx32_impl( 
-		.doa(), 		.dia(new_din), .addra(wadr[WA-1:0]), .clka(clkw), .wea(we & ~full_flag),   .rsta(rst), 
-		.dob(new_dout), .dib(9'bz),    .addrb(radr[WA-1:0]), .clkb(clkr), .web(1'b0), .rstb(rst));
+		.doa(), 		.dia(new_din), .addra(wadr[WA-1:0]), .clka(clkw), .wea(we & ~full_flag),   .rsta(~rst_n), 
+		.dob(new_dout), .dib(9'bz),    .addrb(radr[WA-1:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n));
 
 	/* write address */
 	always @(posedge clkw or negedge rst_n) begin

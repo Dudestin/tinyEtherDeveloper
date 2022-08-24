@@ -13,6 +13,7 @@ module MAC_DEC #(
 	i0_fifo_aempty,
 	i0_fifo_afull,  // need to be synchronize !!
 	i0_fifo_half,   // need to be synchronize !!
+	i0_fifo_frame_exist,
 	i0_fifo_rden,
 	i0_fifo_del,
 
@@ -22,6 +23,7 @@ module MAC_DEC #(
 	i1_fifo_aempty,
 	i1_fifo_afull,	// need to be synchronize !!
 	i1_fifo_half,   // need to be synchronize !!
+	i1_fifo_frame_exist,	
 	i1_fifo_rden,
 	i1_fifo_del,
 
@@ -31,6 +33,7 @@ module MAC_DEC #(
 	i2_fifo_aempty,
 	i2_fifo_afull,	// need to be synchronize !!
 	i2_fifo_half,   // need to be synchronize !!
+	i2_fifo_frame_exist,	
 	i2_fifo_rden,
 	i2_fifo_del,
 
@@ -40,6 +43,7 @@ module MAC_DEC #(
 	i3_fifo_aempty,
 	i3_fifo_afull,  // need to be synchronize !!
 	i3_fifo_half,   // need to be synchronize !!
+	i3_fifo_frame_exist,	
 	i3_fifo_rden,
 	i3_fifo_del,
 			
@@ -62,7 +66,8 @@ module MAC_DEC #(
 	input wire i0_fifo_empty;
 	input wire i0_fifo_aempty;
 	input wire i0_fifo_afull;	
-	input wire i0_fifo_half;	
+	input wire i0_fifo_half;
+	input wire i0_fifo_frame_exist;
 	output reg i0_fifo_rden;
 	input wire i0_fifo_del;
 
@@ -71,7 +76,8 @@ module MAC_DEC #(
 	input wire i1_fifo_empty;
 	input wire i1_fifo_aempty;
 	input wire i1_fifo_afull;	
-	input wire i1_fifo_half;	
+	input wire i1_fifo_half;
+	input wire i1_fifo_frame_exist;	
 	output reg i1_fifo_rden;
 	input wire i1_fifo_del;	
 
@@ -80,7 +86,8 @@ module MAC_DEC #(
 	input wire i2_fifo_empty;
 	input wire i2_fifo_aempty;
 	input wire i2_fifo_afull;	
-	input wire i2_fifo_half;	
+	input wire i2_fifo_half;
+	input wire i2_fifo_frame_exist;	
 	output reg i2_fifo_rden;
 	input wire i2_fifo_del;
 
@@ -89,7 +96,8 @@ module MAC_DEC #(
 	input wire i3_fifo_empty;
 	input wire i3_fifo_aempty;
 	input wire i3_fifo_afull;
-	input wire i3_fifo_half;	
+	input wire i3_fifo_half;
+	input wire i3_fifo_frame_exist;		
 	output reg i3_fifo_rden;
 	input wire i3_fifo_del;
 	
@@ -137,7 +145,8 @@ module MAC_DEC #(
 	// general purpose counter
 	reg [3:0] cnt_reg;
 
-	wire [3:0] i_fifo_aempty;
+	/* below signal used in scheduler */
+	wire [3:0] i_fifo_aempty; // not used now 
 	assign i_fifo_aempty = {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
 	
 	wire [3:0] i_fifo_afull;
@@ -149,6 +158,10 @@ module MAC_DEC #(
 	wire [3:0] i_fifo_half_sync; // afull is on write clock domain, so need to be synchronize;
 	assign i_fifo_half = {i3_fifo_half, i2_fifo_half, i1_fifo_half, i0_fifo_half};
 	vec_sync_2ff #(.WIDTH(4)) vec_sync_half (.clk(clk), .din(i_fifo_half), .dout(i_fifo_half_sync));
+	
+	wire [3:0] i_fifo_frame_exist;
+	assign i_fifo_frame_exist = 
+		{i3_fifo_frame_exist, i2_fifo_frame_exist, i1_fifo_frame_exist, i0_fifo_frame_exist};	
 	
 	// MUX by phy_id_reg
 	wire [7:0] i_fifo_dout;
@@ -255,8 +268,10 @@ module MAC_DEC #(
 				begin
 				 	STATE <= S_HEADER;
 				 	/* simple scheduler 
-				 	   a PHY-RX FIFO is also full, it has high priority in ascending order on phy_id */
-					casex (~i_fifo_aempty)
+				 	   Low Priority    : FRAME-FIFO has untreated frame.
+				 	   Medium Priority : half of FRAME-FIFO occupied.
+				 	   High Proority   : most of FRAME-FIFO occupied. */
+					casex (i_fifo_frame_exist)
 						4'bxxx1 : phy_id_reg <= 2'd0;
 						4'bxx10 : phy_id_reg <= 2'd1;
 						4'bx100 : phy_id_reg <= 2'd2;
