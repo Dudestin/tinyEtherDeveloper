@@ -52,6 +52,14 @@ module CTRL_FRAME_ISSUER (
 		input  wire p3_fifo_afull;
 		output wire p3_fifo_wren;
 
+		/* TX frame statemachine */
+		reg [2:0] STATE;
+		localparam S_IDLE = 3'd0,
+			S_WAIT = 3'd1, // wait PHY fifo ready.
+			S_TX   = 3'd2,
+            S_FCS  = 3'd3,
+			S_END  = 3'd4;
+
 		// Exclusive Control
 		output reg  [3:0] mutex_req; // Index corresoponding to PHY_ID
 		input  wire [3:0] mutex_val;
@@ -134,12 +142,6 @@ module CTRL_FRAME_ISSUER (
 		end
 
 		/* TX frame interface */
-		reg [2:0] STATE;
-		localparam S_IDLE = 3'd0,
-			S_WAIT = 3'd1, // wait PHY fifo ready.
-			S_TX   = 3'd2,
-            S_FCS  = 3'd3,
-			S_END  = 3'd4;
 
 		/* FCS calculation */
 		wire [31:0] crc_out;

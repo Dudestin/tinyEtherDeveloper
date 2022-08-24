@@ -53,6 +53,17 @@ module CTRL_FRAME_FETCHER #(
 	input  [31:0] iomem_wdata; // not used (because Read Only Interface)
 	output reg [31:0] iomem_rdata;
 	
+	/* Memory Interface */
+	reg [5+1:0] wr_ptr1;
+	reg [  3:0] wr_ptr2;
+	reg [5+1:0] rd_ptr;
+	reg destroy;
+	wire fifo_empty = (wr_ptr1 == rd_ptr);
+	wire fifo_full  = (wr_ptr1 == {~rd_ptr[6], rd_ptr[5:0]});
+	reg ram_wen;
+	reg  [31:0] wr_word_reg;
+	wire [31:0] raw_ram_dout;
+
 	wire [31:0] cfg_do;
 	/* Config */
 	wire config_frame_valid = ~fifo_empty;   // indicates valid data is provided
@@ -65,17 +76,6 @@ module CTRL_FRAME_FETCHER #(
 	assign cfg_do[29] = config_ignore_bpds;
 	assign cfg_do[28] = config_ignore_pause;
 	assign cfg_do[27:0] = 28'b0;
-	
-	/* Memory Interface */
-	reg [5+1:0] wr_ptr1;
-	reg [  3:0] wr_ptr2;
-	reg [5+1:0] rd_ptr;
-	reg destroy;
-	wire fifo_empty = (wr_ptr1 == rd_ptr);
-	wire fifo_full  = (wr_ptr1 == {~rd_ptr[6], rd_ptr[5:0]});
-	reg ram_wen;
-	reg  [31:0] wr_word_reg;
-	wire [31:0] raw_ram_dout;
 
 	/* TODO [] : check BRAM latency */
 	CTRL_FRAME_RAM ctrl_frame_ram_impl ( 

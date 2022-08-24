@@ -245,7 +245,10 @@ module MAC_SWITCH #(
 				if (h_FRAME_VALID)
 					STATE <= S_SRC_SEARCH;
 				else
-					STATE <= S_DST_SEARCH;
+				begin // if frame is broken, discard(don't send to any FIFO) the frame
+					match_port_reg <= 4'b0000;
+					STATE <= S_TX_HEADER;
+				end
 			end
 
 			// search SRC_MAC from MAC table to determine need to register.
@@ -291,17 +294,10 @@ module MAC_SWITCH #(
 				/* after 2 tick (wait compare result came)*/
 				if (cnt_reg == 5'd2)
 				begin
-					if (h_FRAME_VALID)   // if frame is not broken.
-					begin
-						if (table_match) // if exists, cast the frame
-							mutex_req <= match_port & ~mask_port_synced; // Acquire Mutex
-						else             // if not found, broadcast the frame
-							mutex_req <= 4'b1111 & ~(1 << h_PORT) & ~mask_port_synced; // Acquire Mutex		
-					end
-					else
-					begin // if frame is broken, discard(don't send to any FIFO) the frame
-						mutex_req <= 4'b0000;
-					end
+					if (table_match) // if exists, cast the frame
+						mutex_req <= match_port & ~mask_port_synced; // Acquire Mutex
+					else             // if not found, broadcast the frame
+						mutex_req <= 4'b1111 & ~(1 << h_PORT) & ~mask_port_synced; // Acquire Mutex		
 					cnt_reg <= 5'b0;
 					STATE <= S_AWAIT_MUTEX;	
 				end

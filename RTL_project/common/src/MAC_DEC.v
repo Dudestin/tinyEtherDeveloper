@@ -270,7 +270,7 @@ module MAC_DEC #(
 				 	/* simple scheduler 
 				 	   Low Priority    : FRAME-FIFO has untreated frame.
 				 	   Medium Priority : half of FRAME-FIFO occupied.
-				 	   High Proority   : most of FRAME-FIFO occupied. */
+				 	   High Priority   : most of FRAME-FIFO occupied. */
 					casex (i_fifo_frame_exist)
 						4'bxxx1 : phy_id_reg <= 2'd0;
 						4'bxx10 : phy_id_reg <= 2'd1;
