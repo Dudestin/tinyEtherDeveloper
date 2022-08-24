@@ -182,8 +182,8 @@ module MAC_SWITCH #(
 
 		.compare_data(table_compare_data),
 		.match_many(table_match_many),
-		.match_single(),
-		.match_addr(),
+		// .match_single(),
+		// .match_addr(),
 		.match(table_match)
 	);
 
@@ -373,7 +373,7 @@ module MAC_SWITCH #(
 			// terminate
 			else if (STATE == S_END)
 			begin
-				h_fifo_rden_reg <= 1'b0; // pair with L313
+				h_fifo_rden_reg <= 1'b0; // pair with L362
 				o_fifo_wren_reg <= 4'b0;
 				o_fifo_del_reg  <= 1'b0;
 				b_fifo_rden_reg <= 1'b0;

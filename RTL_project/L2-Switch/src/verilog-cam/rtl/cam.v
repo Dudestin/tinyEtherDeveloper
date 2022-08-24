@@ -51,8 +51,8 @@ module cam #(
 
     input  wire [DATA_WIDTH-1:0]    compare_data,
     output wire [2**ADDR_WIDTH-1:0] match_many,
-    output wire [2**ADDR_WIDTH-1:0] match_single,
-    output wire [ADDR_WIDTH-1:0]    match_addr,
+    // output wire [2**ADDR_WIDTH-1:0] match_single,
+    // output wire [ADDR_WIDTH-1:0]    match_addr,
     output wire                     match
 );
 
@@ -73,8 +73,8 @@ generate
             .write_busy(write_busy),
             .compare_data(compare_data),
             .match_many(match_many),
-            .match_single(match_single),
-            .match_addr(match_addr),
+            // .match_single(match_single),
+            // .match_addr(match_addr),
             .match(match)
         );
     end else if (CAM_STYLE == "BRAM") begin
@@ -93,8 +93,8 @@ generate
             .write_busy(write_busy),
             .compare_data(compare_data),
             .match_many(match_many),
-            .match_single(match_single),
-            .match_addr(match_addr),
+            // .match_single(match_single),
+            // .match_addr(match_addr),
             .match(match)
         );
     end

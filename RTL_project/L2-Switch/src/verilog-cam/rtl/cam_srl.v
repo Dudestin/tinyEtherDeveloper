@@ -49,8 +49,8 @@ module cam_srl #(
 
     input  wire [DATA_WIDTH-1:0]    compare_data,
     output wire [2**ADDR_WIDTH-1:0] match_many,
-    output wire [2**ADDR_WIDTH-1:0] match_single,
-    output wire [ADDR_WIDTH-1:0]    match_addr,
+    // output wire [2**ADDR_WIDTH-1:0] match_single,
+    // output wire [ADDR_WIDTH-1:0]    match_addr,
     output wire                     match
 );
 
