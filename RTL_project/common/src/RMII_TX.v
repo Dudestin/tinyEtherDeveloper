@@ -88,6 +88,8 @@ module RMII_TX #(
         	cnt_reg  <= 8'b0;
         	rand_cnt_reg <= 8'b0;
         	fifo_rden<= 1'b0;
+			fetched_seq <= 8'b0;
+			fetched_EOD <= 1'b0;
     	end
     	else
     	begin
@@ -101,6 +103,11 @@ module RMII_TX #(
     				TXEN_reg <= 1'b0;
             		if (~fifo_aempty & ~(CRS_DV & ~duplex_mode)) // fifo has some data & CRS is 0
             		begin
+						// fifo_EOD_out will be 1'b1 because last bytes reside, pop out it.
+						if (fifo_EOD_out) 
+							fifo_rden <= 1'b1;
+						else
+							fifo_rden <= 1'b0;
             	        rand_cnt_reg  <= rand_value[7:0]; // used in S_COL	
                 		STATE         <= S_PREAMBLE;
                 	end
@@ -120,10 +127,10 @@ module RMII_TX #(
     				begin
     					TXD0_reg <= 1'b1;
     					TXD1_reg <= 1'b1;
-    					cnt_reg <= 0;
-    					fetched_seq <= fifo_dout;
-    					fetched_EOD <= 1'b0;
-    					fifo_rden <= 1'b1;
+    					cnt_reg <= 8'b0;
+						fetched_seq <= fifo_dout;
+    					fetched_EOD <= fifo_EOD_out;  // should be 0
+						fifo_rden <= 1'b1;
     					STATE   <= S_BODY;
     				end
     			end
@@ -135,26 +142,30 @@ module RMII_TX #(
     				TXD0_reg <= fetched_seq[0];
     				TXD1_reg <= fetched_seq[1];
     				TXEN_reg <= 1'b1;
-    				if (cnt_reg[1:0] == 2'd3)
+    				if (cnt_reg[1:0] == 2'd3) // end of byte, determine finish process or continue.
     				begin
     					cnt_reg <= 8'b0;
-    					fetched_seq <= fifo_dout; // load new byte
-    					fetched_EOD <= fifo_EOD_out; // fetch eod
-    					fifo_rden <= 1'b1;
-						if (fetched_EOD)
+						if (fetched_EOD) // End of Frame, finish transmit the data.
 						begin
-    						STATE <= S_END;
     						fifo_rden <= 1'b0;
     						succ_tx_count <= succ_tx_count + 1'b1;							
-						end    					
-    					else if (fifo_empty)
-    					begin
     						STATE <= S_END;
+						end    					
+    					else if (fifo_empty) // if fifo is empty, abort the process.
+    					begin
 							fifo_rden <= 1'b0;
     						fail_tx_count <= fail_tx_count + 1'b1;
+    						STATE <= S_END;
     					end
+						else // continue transmitting
+						begin
+							// load new byte
+							fifo_rden <= 1'b1;
+							fetched_seq <= fifo_dout; 
+							fetched_EOD <= fifo_EOD_out; 
+						end
     				end else begin
-    					fetched_seq <= {2'b0, fetched_seq[7:2]}; // shift sequence
+    					fetched_seq <= fetched_seq >> 2; // shift sequence
     				end
     			end
     			

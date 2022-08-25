@@ -194,7 +194,7 @@ module FRAME_FIFO #(
 	vec_sync_2ff #(WA+1) sync_1 (.clk(clkr), .din(wadr_gray), .dout(wadr_gray_sync));
 
 	/* empty flag @ read clock */
-	wire [WA:0] wadr_sync;	
+	wire [WA:0] wadr_sync;
 	my_gray2bin #(.WIDTH(WA+1)) gray2bin_impl1 (.din(wadr_gray_sync), .dout(wadr_sync));
 	
 	always @(posedge clkr) begin

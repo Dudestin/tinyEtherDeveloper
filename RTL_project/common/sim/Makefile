@@ -32,6 +32,15 @@ $(WAVE)/tb_rmii_tx.vcd: $(WORK)/tb_rmii_tx.o
 sim_rmii_tx: $(WAVE)/tb_rmii_tx.vcd
 	gtkwave $^
 
+$(WORK)/tb_rmii_rx.o: tb_rmii_rx.v $(RTL)
+	iverilog $^ -o $@
+
+$(WAVE)/tb_rmii_rx.vcd: $(WORK)/tb_rmii_rx.o
+	$^
+
+sim_rmii_rx: $(WAVE)/tb_rmii_rx.vcd
+	gtkwave $^
+
 $(WORK)/tb_mutex.o: tb_mutex.v $(RTL) $(IP)
 	iverilog $^ -o $@
 

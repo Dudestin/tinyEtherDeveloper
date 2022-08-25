@@ -38,10 +38,11 @@ module tb_rmii_tx (
 		fifo_aempty <= 1'b0;
 	
 		// End TX
-		#2000
+		#2010
 		fifo_EOD_out <= 1'b1;
+		#100
 		fifo_empty   <= 1'b1;
-		fifo_aempty   <= 1'b1;
+		fifo_aempty  <= 1'b1;
 		#2000
 		$finish;
 	end
@@ -61,7 +62,7 @@ module tb_rmii_tx (
 		.TXD0(TXD0),
 		.TXD1(TXD1),
 		.TX_EN(TX_EN),
-		.CRS(1'b0),
+		.CRS_DV(1'b0),
 		
 		// config
 		.duplex_mode(1'b1) // 1 means full-duplex, 0 means half-duplex
@@ -78,7 +79,7 @@ module tb_rmii_tx (
 		// Original FIFO Signal
 		.fifo_EOD_in(rx_fifo_EOD_in),
 		// RMII signal
-		.REF_CLK(clk), .CRS(TX_EN), .RXD0(TXD0), .RXD1(TXD1)
+		.REF_CLK(clk), .CRS_DV(TX_EN), .RXD0(TXD0), .RXD1(TXD1)
 	);
 	
 endmodule

@@ -27,7 +27,7 @@ module RMII_RX(
     output reg [7:0] fifo_din;
     output reg fifo_wren;
 	// Original FIFO signal    
-    output reg fifo_EOD_in;      // indicates End of Data. Useful to detect frame end.
+    output wire fifo_EOD_in;      // indicates End of Data. Useful to detect frame end.
      
     // monitor signal
 	output wire [15:0] succ_rx_count_gray;    
@@ -55,7 +55,7 @@ module RMII_RX(
 	reg CRS_DV_lat;
 	
 	wire DV = CRS_DV | CRS_DV_lat; // demodulate DV (Data Valid) Signal
-	// assign fifo_EOD_in = (counter == 2'b11) && ~DV;	
+	assign fifo_EOD_in = (counter == 2'b00) && ~DV;	
 	
 	always @(posedge REF_CLK or negedge arst_n)
 	begin
@@ -71,8 +71,6 @@ module RMII_RX(
 		end
 	end
 	
-	// assign fifo_EOD_in = (~DV && (STATE == S_BODY));
-	
 	always @(posedge REF_CLK or negedge arst_n)
 	begin
 		if (~arst_n)
@@ -84,13 +82,11 @@ module RMII_RX(
 			buff_OF_count <= 16'b0;
 			fifo_wren <= 1'b0;
 			fifo_din  <= 8'b0;
-			fifo_EOD_in <= 1'b0;
 		end
 		else
 		begin
 			seq <= {RXD1_lat, RXD0_lat, seq[7:2]};
 			fifo_wren <= 1'b0;
-			fifo_EOD_in <= 1'b0;
 			if (STATE == S_IDLE)
 			begin
 				counter <= 2'b0;
@@ -116,12 +112,9 @@ module RMII_RX(
 				begin
 					fifo_din  <= seq;
 					fifo_wren <= 1'b1;
-					if (~DV)
-					begin
-						fifo_EOD_in <= 1'b1;
-						STATE <= S_END;
-					end
 				end
+				if (~DV)
+					STATE <= S_END;
 			end
 			
 			else if (STATE == S_END)
