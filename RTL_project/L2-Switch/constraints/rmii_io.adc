@@ -1,4 +1,4 @@
-set_pin_assignment	{ CLK_IN }	{ LOCATION = K14; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ CLK_IN }	{ LOCATION = K14;}
 set_pin_assignment	{ PHY_CRS_DV[0] }	{ LOCATION = N3; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_CRS_DV[1] }	{ LOCATION = D5; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_CRS_DV[2] }	{ LOCATION = A14; IOSTANDARD = LVTTL33; }
@@ -32,3 +32,7 @@ set_pin_assignment	{ PHY_TXEN[1] }	{ LOCATION = A4; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_TXEN[2] }	{ LOCATION = B8; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_TXEN[3] }	{ LOCATION = F16; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ arst_n }	{ LOCATION = K16; IOSTANDARD = LVTTL33; }
+
+set_pin_assignment	{ RGB_LED[0] }	{ LOCATION = R3; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ RGB_LED[1] }	{ LOCATION = J14; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ RGB_LED[2] }	{ LOCATION = P13; IOSTANDARD = LVTTL33; }

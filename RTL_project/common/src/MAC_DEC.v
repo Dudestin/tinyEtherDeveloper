@@ -267,31 +267,24 @@ module MAC_DEC #(
 				if (~h_fifo_full & ~b_fifo_afull)
 				begin
 				 	STATE <= S_HEADER;
-				 	/* simple scheduler 
-				 	   Low Priority    : FRAME-FIFO has untreated frame.
-				 	   Medium Priority : half of FRAME-FIFO occupied.
-				 	   High Priority   : most of FRAME-FIFO occupied. */
-					casex (i_fifo_frame_exist)
-						4'bxxx1 : phy_id_reg <= 2'd0;
-						4'bxx10 : phy_id_reg <= 2'd1;
-						4'bx100 : phy_id_reg <= 2'd2;
-						4'b1000 : phy_id_reg <= 2'd3;
-						default : ;
-					endcase
-					
-					casex (i_fifo_half_sync)
-						4'bxxx1 : phy_id_reg <= 2'd0;
-						4'bxx10 : phy_id_reg <= 2'd1;
-						4'bx100 : phy_id_reg <= 2'd2;
-						4'b1000 : phy_id_reg <= 2'd3;
-						default : ;
-					endcase
-
-					casex (i_fifo_afull_sync)
-						4'bxxx1 : phy_id_reg <= 2'd0;
-						4'bxx10 : phy_id_reg <= 2'd1;
-						4'bx100 : phy_id_reg <= 2'd2;
-						4'b1000 : phy_id_reg <= 2'd3;
+				 	cnt_reg <= 4'b0;
+				 	/* simple scheduler */
+					casex ({i_fifo_frame_exist,i_fifo_half_sync, i_fifo_afull_sync})
+						/* High Priority : most of FRAME-FIFO occupied. */
+						12'bxxxx_xxxx_xxx1 : phy_id_reg <= 2'd0;
+						12'bxxxx_xxxx_xx10 : phy_id_reg <= 2'd1;
+						12'bxxxx_xxxx_x100 : phy_id_reg <= 2'd2;
+						12'bxxxx_xxxx_1000 : phy_id_reg <= 2'd3;
+						/* Medium Priority : half of FRAME-FIFO occupied. */
+						12'bxxxx_xxx1_0000 : phy_id_reg <= 2'd0;
+						12'bxxxx_xx10_0000 : phy_id_reg <= 2'd1;
+						12'bxxxx_x100_0000 : phy_id_reg <= 2'd2;
+						12'bxxxx_1000_0000 : phy_id_reg <= 2'd3;
+						/* Low Priority    : FRAME-FIFO has untreated frame. */
+						12'bxxx1_0000_0000 : phy_id_reg <= 2'd0;
+						12'bxx10_0000_0000 : phy_id_reg <= 2'd1;
+						12'bx100_0000_0000 : phy_id_reg <= 2'd2;
+						12'b1000_0000_0000 : phy_id_reg <= 2'd3;				
 						default : STATE <= S_IDLE; // if no one is selectable, stay IDLE;
 					endcase
 				end					

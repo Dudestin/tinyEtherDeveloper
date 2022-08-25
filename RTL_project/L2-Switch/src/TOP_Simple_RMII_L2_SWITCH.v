@@ -6,6 +6,8 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	CLK_IN,
 	arst_n,
 	
+	RGB_LED,
+	
 	PHY_RST,
 	PHY_TXEN,
 	PHY_TXD0,
@@ -29,9 +31,20 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	// generate 100 MHz system clock from 24MHz Clock
 	pll_clk100M pll_impl(
 		.refclk(CLK_IN),
-		.reset(rst),
+		.reset(1'b0),
 		.extlock(),
 		.clk0_out(clk));
+
+	output wire [2:0] RGB_LED;
+	reg [27:0] counter;
+	assign RGB_LED[0] = counter[27];
+	assign RGB_LED[1] = counter[27];
+	assign RGB_LED[2] = counter[27];
+	always @(posedge clk or negedge arst_n)
+		if (~arst_n)
+			counter <= 0;
+		else
+			counter <= counter + 1'b1;
 	
 	output wire [3:0] PHY_RST;
 	output wire [3:0] PHY_TXEN;
@@ -43,7 +56,7 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	input  wire [3:0] PHY_CRS_DV;
 
 	// PHY Reset
-	assign PHY_RST = {rst_n, rst_n, rst_n, rst_n}; // Active-Low
+	assign PHY_RST = 4'b1111; // Active-Low
 
 	// generate PHY-RX module & FIFO 
 	wire [7:0] frame_fifo_rx_fifo_din [0:3];

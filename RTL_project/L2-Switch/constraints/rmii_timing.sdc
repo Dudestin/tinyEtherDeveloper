@@ -8,7 +8,7 @@ create_clock -name phy2_ref_clk -period 20 -waveform {0 10} [get_ports {PHY_REF_
 create_clock -name phy3_ref_clk -period 20 -waveform {0 10} [get_ports {PHY_REF_CLK[3]}]
 
 #Derive PLL Clocks
-derive_pll_clocks -gen_basic_clock
+derive_pll_clocks#-gen_basic_clock
 
 #Set Input/Output Delay
 set_input_delay -clock phy0_ref_clk -min 2 [get_ports {PHY_CRS_DV[0]} {PHY_RXD0[0]} {PHY_RXD1[0]}]

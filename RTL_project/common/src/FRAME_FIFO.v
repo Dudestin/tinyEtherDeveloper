@@ -132,7 +132,7 @@ module FRAME_FIFO #(
 
 	always @(posedge clkw) begin
 		if(~rst_n_w)
-			afull_flag <= 1'b1;
+			afull_flag <= 1'b0;
 		else
 			afull_flag <= (diff_adr_w >= AFULL_CNT);
 	end
@@ -141,7 +141,7 @@ module FRAME_FIFO #(
 	always @(posedge clkw)
 	begin
 		if (~rst_n_r)
-			half_flag <= 1'b1;
+			half_flag <= 1'b0;
 		else
 			half_flag <= (diff_adr_w >= HALF_CNT);
 	end

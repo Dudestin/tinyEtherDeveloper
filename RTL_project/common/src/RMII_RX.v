@@ -55,6 +55,7 @@ module RMII_RX(
 	reg CRS_DV_lat;
 	
 	wire DV = CRS_DV | CRS_DV_lat; // demodulate DV (Data Valid) Signal
+	// assign fifo_EOD_in = (counter == 2'b11) && ~DV;	
 	
 	always @(posedge REF_CLK or negedge arst_n)
 	begin

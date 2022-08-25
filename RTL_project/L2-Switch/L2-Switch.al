@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 12:10:52</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>01111100</UCode>
+    <UCode>01100100</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -42,7 +42,7 @@
         </Verilog>
         <ADC_FILE>constraints/rmii_io.adc</ADC_FILE>
         <SDC_FILE>constraints/rmii_timing.sdc</SDC_FILE>
-        <CWC_FILE/>
+        <CWC_FILE>dec.cwc</CWC_FILE>
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
@@ -50,8 +50,8 @@
         <CREATEINDEX>auto</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-08-24 22:17:14</Step_Last_Change>
-        <Current_Step>60</Current_Step>
+        <Step_Last_Change>2022-08-25 15:19:27</Step_Last_Change>
+        <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>
