@@ -309,7 +309,7 @@ module MAC_DEC #(
 				begin
 					cnt_reg         <= cnt_reg + 1'b1;
 					crc_en_reg      <= 1'b1;
-					i_fifo_rden_reg <= 1'b1;
+					i_fifo_rden_reg <= 1'b1; // fix
 					h_fifo_din_reg  <= {h_fifo_din_reg[103:0], i_fifo_dout};
 					if (cnt_reg == 4'd13) // end of HEADER, go to S_PAYLOAD
 						STATE <= S_PAYLOAD;

@@ -49,7 +49,7 @@ module tb_rmii_tx (
 		end
 		#1
 		crs_dv <= 1'b0;
-		#21 crs_dv <= 1'b1;
+		#20 crs_dv <= 1'b1;
 		#20 crs_dv <= 1'b0;
 		#20 crs_dv <= 1'b1;
 		#20 crs_dv <= 1'b0;

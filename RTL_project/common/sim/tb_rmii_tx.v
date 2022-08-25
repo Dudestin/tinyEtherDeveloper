@@ -40,9 +40,6 @@ module tb_rmii_tx (
 		// End TX
 		#2010
 		fifo_EOD_out <= 1'b1;
-		#100
-		fifo_empty   <= 1'b1;
-		fifo_aempty  <= 1'b1;
 		#2000
 		$finish;
 	end
@@ -50,12 +47,27 @@ module tb_rmii_tx (
 	wire TXD0;
 	wire TXD1;
 	wire TX_EN;
+	wire fifo_rden;
+	always @(posedge clk)
+	begin
+		if (fifo_rden)
+			if (fifo_dout < 8'h1F)
+			begin
+				fifo_dout <= fifo_dout + 1'b1;
+			end
+			else
+			begin
+				fifo_aempty <= 1'b1;
+				fifo_empty <= 1'b1;
+			end
+	end
+
 	RMII_TX rmii_tx (
 		.arst_n(arst_n),
 		.fifo_aempty(fifo_aempty),
 		.fifo_dout(fifo_dout),
 		.fifo_empty(fifo_empty),
-		.fifo_rden(),
+		.fifo_rden(fifo_rden),
 		.fifo_EOD_out(fifo_EOD_out),
 
 		.REF_CLK(clk),

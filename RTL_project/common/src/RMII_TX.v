@@ -23,7 +23,7 @@ module RMII_TX #(
 	input wire fifo_aempty;
 	input wire [7:0] fifo_dout;
 	input wire fifo_empty;
-	output reg  fifo_rden;
+	output reg fifo_rden;
 	input wire fifo_EOD_out;
 	
 	input  wire REF_CLK; // 50MHz, come from PHY-Chip
@@ -46,15 +46,15 @@ module RMII_TX #(
 	assign COL = duplex_mode ? 1'b0 : CRS_DV & TX_EN;
 	
 	output wire [15:0] succ_tx_count_gray;
-	reg [15:0] succ_tx_count; // raw binary counter
+	reg [15:0] succ_tx_count_reg; // raw binary counter
 	my_bin2gray #(.WIDTH(16)) 
-		succ_gray(.din(succ_tx_count), .dout(succ_tx_count_gray));
+		succ_gray(.din(succ_tx_count_reg), .dout(succ_tx_count_gray));
 	output wire [15:0] fail_tx_count_gray;
-	reg [15:0] fail_tx_count;
+	reg [15:0] fail_tx_count_reg;
 	my_bin2gray #(.WIDTH(16))
-		fail_gray(.din(fail_tx_count), .dout(fail_tx_count_gray));
+		fail_gray(.din(fail_tx_count_reg), .dout(fail_tx_count_gray));
 	
-	reg [2:0] STATE;
+	reg [2:0] STATE_reg;
 	localparam S_IDLE = 3'd0,
        	S_PREAMBLE = 3'd1,
        	S_BODY     = 3'd2,
@@ -62,159 +62,129 @@ module RMII_TX #(
        	S_COL      = 3'd4,
        	S_END      = 3'd5;
        	
-    	/* general purpose counter */
-    	reg [7:0] cnt_reg;
-    
-    /* S_COL : random counter */
-	reg [7:0] rand_cnt_reg; 
-	
-	/* rand value generater */
-	wire [31:0] rand_value;
-	m_seq_32 randgen(.clk(REF_CLK), .reset(arst_n), .mseq32(rand_value));
-	
-	reg [7:0] fetched_seq;
-	reg fetched_EOD;
+    /* general purpose counter */
+    reg [7:0] cnt_reg;
+
+	reg [2:0] STATE_next;
+	reg TXD0_next, TXD1_next, TXEN_next;
+	reg [15:0] succ_tx_count_next, fail_tx_count_next;
+	reg [7:0] cnt_next;
+
+	always @*
+	begin
+		/* default value */
+        STATE_next = STATE_reg;
+        TXD0_next = 1'b0;
+        TXD1_next = 1'b0;
+        TXEN_next = 1'b0;
+		succ_tx_count_next = succ_tx_count_reg;
+		fail_tx_count_next = fail_tx_count_reg;
+    	cnt_next  = cnt_reg;
+		fifo_rden = 1'b0;
+
+		case (STATE_reg)
+		S_IDLE : 
+		begin
+			TXD0_next = 1'b0; TXD1_next = 1'b0;
+			TXEN_next = 1'b0;
+			if (~fifo_aempty) // fifo has some data & CRS is 0
+			begin
+				STATE_next     = S_PREAMBLE;
+			end
+		end
+
+		/* transmit preamble section */
+		S_PREAMBLE : 
+		begin
+			cnt_next = cnt_reg + 1'b1;
+			TXEN_next = 1'b1;
+			if (cnt_reg < 8'd31)
+			begin
+				TXD0_next = 1'b1;
+				TXD1_next = 1'b0;
+			end
+			else if (cnt_reg == 8'd31)
+			begin
+				TXD0_next = 1'b1;
+				TXD1_next = 1'b1;
+				cnt_next  = 8'b0;
+				STATE_next = S_BODY;
+			end
+		end
+
+		/* transmit body(header + payload) section */
+		S_BODY:
+		begin
+			cnt_next = cnt_reg + 1'b1;
+			TXD0_next = fifo_dout[{cnt_reg[1:0], 1'b0}];
+			TXD1_next = fifo_dout[{cnt_reg[1:0], 1'b1}];
+			TXEN_next = 1'b1;
+
+			if (cnt_reg[1:0] == 2'd3) // read next byte
+			begin
+				cnt_next = 8'b0;
+				fifo_rden = 1'b1; // wire
+				if (fifo_EOD_out) // if is last byte, finish TX process
+				begin
+					succ_tx_count_next = succ_tx_count_reg + 1'b1;
+					STATE_next = S_END;
+				end
+			end
+
+			if (fifo_empty) // if fifo become empty before EOD comming, abort.
+			begin
+				cnt_next = 0;
+				fifo_rden = 1'b0;
+				TXD0_next = 1'b0; TXD1_next = 1'b0; 
+				TXEN_next = 1'b0;
+				fail_tx_count_next = fail_tx_count_reg + 1'b1;
+				STATE_next = S_END;
+			end
+		end
+
+		/* reset all registers, wait to secure IFG, then go to S_IDLE */			
+		S_END : 
+    	begin
+    		TXD0_next = 1'b0; TXD1_next = 1'b0;
+    		TXEN_next = 1'b0;
+        	cnt_next  = cnt_reg + 1'b1;
+        	if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
+        	begin
+				cnt_next = 8'b0;
+        		STATE_next = S_IDLE;
+        	end   			
+    	end
+    	
+		/* undefined state, go to S_END */
+    	default :
+		begin
+        	STATE_next = S_END;   			
+    	end			
+
+		endcase
+	end
        	
     always @(posedge REF_CLK or negedge arst_n)
+	begin
     	if (~arst_n)
     	begin
-    		cnt_reg <= 8'b0;
-        	STATE    <= S_IDLE;
+        	STATE_reg <= S_IDLE;
         	TXD0_reg <= 1'b0;
         	TXD1_reg <= 1'b0;
         	TXEN_reg <= 1'b0;
-			succ_tx_count <= 16'b0;
-			fail_tx_count <= 16'b0;
-        	cnt_reg  <= 8'b0;
-        	rand_cnt_reg <= 8'b0;
-        	fifo_rden<= 1'b0;
-			fetched_seq <= 8'b0;
-			fetched_EOD <= 1'b0;
+			succ_tx_count_reg <= 16'b0;
+			fail_tx_count_reg <= 16'b0;
+    		cnt_reg <= 8'b0;
     	end
     	else
     	begin
-    		/* default register value */
-    		fifo_rden <= 1'b0;
-    		  		
-    		case (STATE)
-    			S_IDLE : 
-    			begin
-    				TXD0_reg <= 1'b0; TXD1_reg <= 1'b0;
-    				TXEN_reg <= 1'b0;
-            		if (~fifo_aempty & ~(CRS_DV & ~duplex_mode)) // fifo has some data & CRS is 0
-            		begin
-						// fifo_EOD_out will be 1'b1 because last bytes reside, pop out it.
-						if (fifo_EOD_out) 
-							fifo_rden <= 1'b1;
-						else
-							fifo_rden <= 1'b0;
-            	        rand_cnt_reg  <= rand_value[7:0]; // used in S_COL	
-                		STATE         <= S_PREAMBLE;
-                	end
-    			end
-    			
-    			/* transmit preamble section */
-    			S_PREAMBLE : 
-    			begin
-    				cnt_reg <= cnt_reg + 1'b1;
-    				TXEN_reg <= 1'b1;
-    				if (cnt_reg < 8'd30)
-    				begin
-    					TXD0_reg <= 1'b1;
-    					TXD1_reg <= 1'b0;
-    				end
-    				else if (cnt_reg == 8'd31)
-    				begin
-    					TXD0_reg <= 1'b1;
-    					TXD1_reg <= 1'b1;
-    					cnt_reg <= 8'b0;
-						fetched_seq <= fifo_dout;
-    					fetched_EOD <= fifo_EOD_out;  // should be 0
-						fifo_rden <= 1'b1;
-    					STATE   <= S_BODY;
-    				end
-    			end
-    			
-    			/* transmit frame header & body */
-    			S_BODY : 
-    			begin
-    				cnt_reg <= cnt_reg + 1'b1;
-    				TXD0_reg <= fetched_seq[0];
-    				TXD1_reg <= fetched_seq[1];
-    				TXEN_reg <= 1'b1;
-    				if (cnt_reg[1:0] == 2'd3) // end of byte, determine finish process or continue.
-    				begin
-    					cnt_reg <= 8'b0;
-						if (fetched_EOD) // End of Frame, finish transmit the data.
-						begin
-    						fifo_rden <= 1'b0;
-    						succ_tx_count <= succ_tx_count + 1'b1;							
-    						STATE <= S_END;
-						end    					
-    					else if (fifo_empty) // if fifo is empty, abort the process.
-    					begin
-							fifo_rden <= 1'b0;
-    						fail_tx_count <= fail_tx_count + 1'b1;
-    						STATE <= S_END;
-    					end
-						else // continue transmitting
-						begin
-							// load new byte
-							fifo_rden <= 1'b1;
-							fetched_seq <= fifo_dout; 
-							fetched_EOD <= fifo_EOD_out; 
-						end
-    				end else begin
-    					fetched_seq <= fetched_seq >> 2; // shift sequence
-    				end
-    			end
-    			
-    			/* not implemented yet */
-      			S_FCS : 
-    			begin
-    			
-    			end 
-    			
-    			/* not used when full-duplex mode */	
-           		// Collision occured
-        		// discard remain data from fifo, then wait random time
-        		// then go to S_END 			
-      			S_COL : 
-    			begin
-    				TXEN_reg <= 1'b0;
-         			// Discard remain data from fifo.
-        			fifo_rden <= ~fifo_EOD_out;
-        			if (fifo_EOD_out)
-        			begin
-        				// Then wait random time 
-        				if (rand_cnt_reg == 8'b0)
-        					STATE <= S_END;
-        				else
-        					rand_cnt_reg <= rand_cnt_reg - 1'b1;
-        			end
-    			end
-    			
-           		/* reset all registers
-        		   wait to secure IFG, then go to S_IDLE */			
-       			S_END : 
-    			begin
-    				TXD0_reg <= 1'b0; TXD1_reg <= 1'b0;
-    				TXEN_reg <= 1'b0;
-             		cnt_reg     <= cnt_reg + 1'b1;
-            		if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
-            		begin
-						cnt_reg  <= 8'b0;
-                		STATE    <= S_IDLE;
-           			end   			
-    			end
-    			
-    			default : // undefined state, go to S_END
-    			begin
-             		STATE     <= S_END;   			
-    			end			
-    		endcase
-    		
-    		if (COL & (STATE != S_COL))
-            	STATE     <= S_COL;
-    	end
+        	STATE_reg <= STATE_next;
+        	TXD0_reg <= TXD0_next;
+        	TXD1_reg <= TXD1_next;
+        	TXEN_reg <= TXEN_next;
+			succ_tx_count_reg <= succ_tx_count_next;
+			fail_tx_count_reg <= fail_tx_count_next;
+        	cnt_reg  <= cnt_next;
+		end
+	end
 endmodule
