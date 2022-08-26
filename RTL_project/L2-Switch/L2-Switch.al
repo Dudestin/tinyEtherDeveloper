@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 12:10:52</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>01100100</UCode>
+    <UCode>01111100</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -39,18 +39,20 @@
             <File>../common/al_ip/pll_clk100M.v</File>
             <File>../common/al_ip/ram_dp_ip.v</File>
             <File>src/TOP_Simple_RMII_L2_SWITCH.v</File>
+            <File>../common/al_ip/raw_9b_fifo.v</File>
+            <File>../common/src/PACKET_FIFO.v</File>
         </Verilog>
         <ADC_FILE>constraints/rmii_io.adc</ADC_FILE>
         <SDC_FILE>constraints/rmii_timing.sdc</SDC_FILE>
-        <CWC_FILE>dec.cwc</CWC_FILE>
+        <CWC_FILE/>
     </Source_Files>
     <TOP_MODULE>
-        <LABEL/>
+        <LABEL></LABEL>
         <MODULE>TOP_Simple_RMII_L2_SWITCH</MODULE>
         <CREATEINDEX>auto</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-08-25 18:41:44</Step_Last_Change>
+        <Step_Last_Change>2022-08-26 18:06:21</Step_Last_Change>
         <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>

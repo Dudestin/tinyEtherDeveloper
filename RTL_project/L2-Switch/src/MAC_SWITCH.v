@@ -34,6 +34,7 @@ module MAC_SWITCH #(
 		p3_fifo_wren,
 		
 		// exclusive control
+		// if don't use, assign mutex_val to 4'b1111;
 		mutex_req,
 		mutex_val,
 		

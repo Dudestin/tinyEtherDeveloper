@@ -189,10 +189,13 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	);
 	
 	/* Body-FIFO */
+	/* NEW_PACKET_FIFO is my original FIFO, large memory space */
+	/* PACKET_FIFO is IP FIFO */
 	wire [7:0] frame_fifo_mac_b_fifo_do;
 	wire frame_fifo_mac_b_fifo_re;
 	wire frame_fifo_mac_b_empty_flag;
 	wire frame_fifo_mac_b_EOD_out;
+	/*	
 	NEW_PACKET_FIFO packet_fifo_mac_b_fifo(
 		.arst_n(arst_n),
 		.di(b_fifo_din),
@@ -208,7 +211,23 @@ module TOP_Simple_RMII_L2_SWITCH #(
 		// my original signal
 		.EOD_in(b_fifo_del),
 		.EOD_out(frame_fifo_mac_b_EOD_out)	
-	);	
+	);
+	*/
+	PACKET_FIFO packet_fifo_mac_b_fifo(
+		.arst_n(arst_n),
+		.di(b_fifo_din),
+		.clk(clk),
+		.we(b_fifo_wren),
+		.do(frame_fifo_mac_b_fifo_do),
+		.re(frame_fifo_mac_b_fifo_re),
+		.empty_flag(frame_fifo_mac_b_empty_flag),
+		.aempty_flag(), // not used here
+		.full_flag(),   // not used here
+		.afull_flag(b_fifo_afull), 
+		// my original signal
+		.EOD_in(b_fifo_del),
+		.EOD_out(frame_fifo_mac_b_EOD_out)	
+	);
 	
 	// PHY-TX module & FIFO
 	/* MAC Switch (L2-Switch) */

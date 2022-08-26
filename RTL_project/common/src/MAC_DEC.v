@@ -229,6 +229,9 @@ module MAC_DEC #(
         /* default value */
         crc_rst = 1'b0; // wire
         crc_en  = 1'b0; // wire
+        fcs_correct = (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;
+        is_ctrl     = (frame_header_reg[63:16] == BPDS_ADDR)  ? 1'b1 : 
+                      (frame_header_reg[63:16] == PAUSE_ADDR) ? 1'b1 : 1'b0; // wire
         i_fifo_rden = 1'b0; // wire
         h_fifo_din  = {12'b0, fcs_correct, is_ctrl, phy_id_reg, frame_header_reg}; // wire
         h_fifo_wren = 1'b0; // write to header FIFO
@@ -237,9 +240,6 @@ module MAC_DEC #(
         b_fifo_wren = 1'b0; // wire
         STATE_next  = STATE_reg;
         cnt_next    = cnt_reg;
-        fcs_correct = (crc_out == 32'hC704_DD7B) ? 1'b1 : 1'b0;
-        is_ctrl     = (frame_header_reg[63:16] == BPDS_ADDR)  ? 1'b1 : 
-                      (frame_header_reg[63:16] == PAUSE_ADDR) ? 1'b1 : 1'b0; // wire
         phy_id_next = phy_id_reg;
         frame_header_next = frame_header_reg;
 
