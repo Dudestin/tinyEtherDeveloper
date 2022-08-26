@@ -47,14 +47,14 @@ module FRAME_FIFO #(
 	bram32k #(.DATA_WIDTH(WD)) bram32k_impl_0
 	( 
 		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we &~wadr[WA-1]), .rsta(~rst_n_w), 
-		.dob(rdat_0), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
+		.dob(rdat_0), .dib(8'bz), .addrb(radr_next[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
 	);
 	
 	wire [WD-1:0] rdat_1;
 	bram32k #(.DATA_WIDTH(WD)) bram32k_impl_1
 	( 
 		.doa(),       .dia(di),   .addra(wadr[WA-2:0]), .clka(clkw), .wea(we & wadr[WA-1]), .rsta(~rst_n_w), 
-		.dob(rdat_1), .dib(8'bz), .addrb(radr[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
+		.dob(rdat_1), .dib(8'bz), .addrb(radr_next[WA-2:0]), .clkb(clkr), .web(1'b0), .rstb(~rst_n_r)
 	);
 	
 	assign do = (radr[WA-1] == 1'b0) ? rdat_0 : rdat_1;
@@ -63,7 +63,7 @@ module FRAME_FIFO #(
 	wire raw_EOD_out;
 	bram9k bram9k_impl ( 
 		.doa(), 	   .dia(EOD_in), .addra(wadr[WA-1:0]), .clka(clkw), .wea(we),  .rsta(~rst_n_w), 
-		.dob(raw_EOD_out), .dib(1'bz),   .addrb(radr[WA-1:0]), .clkb(clkr),  .web(1'b0), .rstb(~rst_n_r)
+		.dob(raw_EOD_out), .dib(1'bz),   .addrb(radr_next[WA-1:0]), .clkb(clkr),  .web(1'b0), .rstb(~rst_n_r)
 	);
 	// to mask old EOD value when fifo is empty
 	assign EOD_out = empty_flag ? 1'b0 : raw_EOD_out;

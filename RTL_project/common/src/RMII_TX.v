@@ -116,8 +116,28 @@ module RMII_TX #(
         S_BODY:
         begin
             cnt_next = cnt_reg + 1'b1;
-            TXD0_next = fifo_dout[{cnt_reg[1:0], 1'b0}];
-            TXD1_next = fifo_dout[{cnt_reg[1:0], 1'b1}];
+            case(cnt_reg[1:0])
+				2'd0:
+				begin             	
+             		TXD0_next = fifo_dout[0];
+           			TXD1_next = fifo_dout[1];
+           		end
+ 				2'd1:
+				begin             	
+             		TXD0_next = fifo_dout[2];
+           			TXD1_next = fifo_dout[3];
+           		end
+ 				2'd2:
+				begin             	
+             		TXD0_next = fifo_dout[4];
+           			TXD1_next = fifo_dout[5];
+           		end
+ 				2'd3:
+				begin             	
+             		TXD0_next = fifo_dout[6];
+           			TXD1_next = fifo_dout[7];
+           		end          		          		          		       
+            endcase
             TXEN_next = 1'b1;
 
             if (cnt_reg[1:0] == 2'd3) // read next byte
@@ -148,7 +168,7 @@ module RMII_TX #(
             TXD0_next = 1'b0; TXD1_next = 1'b0;
             TXEN_next = 1'b0;
             cnt_next  = cnt_reg + 1'b1;
-            if (cnt_reg == IFG)  // to secure IFG (Interframe Gap)
+            if (cnt_reg == (IFG-2))  // to secure IFG (Interframe Gap)
             begin
                 cnt_next = 8'b0;
                 STATE_next = S_IDLE;

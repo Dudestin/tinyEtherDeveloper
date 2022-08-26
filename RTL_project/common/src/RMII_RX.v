@@ -111,9 +111,9 @@ module RMII_RX(
                 cnt_next = cnt_reg + 2'b1;
                 if (cnt_reg[1:0] == 2'b11)
                 begin
-                    fifo_din  = seq_reg; // wire, ここでseq_regにデータそろってる 
-                    fifo_wren = 1'b1; 
-                    fifo_EOD_in = ~DV;   // EOD
+                    fifo_din  = seq_reg; // wire, seq_reg is filled by entire byte in this time.
+                    fifo_wren = 1'b1;    // wire
+                    fifo_EOD_in = ~DV;   // wire, EOD
                     STATE_next = DV ? S_BODY : S_END;
                 end
             end

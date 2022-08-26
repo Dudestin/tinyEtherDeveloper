@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 22:42:06</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>00000111</UCode>
+    <UCode>01101111</UCode>
     <Name>Repeater</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -22,17 +22,17 @@
             <File>../common/al_ip/bram32k.v</File>
             <File>../common/src/m_seq_32.v</File>
         </Verilog>
-        <ADC_FILE>constraints/io.adc</ADC_FILE>
+        <ADC_FILE>constraints/io_port12.adc</ADC_FILE>
         <SDC_FILE>Repeater.sdc</SDC_FILE>
-        <CWC_FILE>tx.cwc</CWC_FILE>
+        <CWC_FILE>rx_3.cwc</CWC_FILE>
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
         <MODULE>TOP_RMII_repeater</MODULE>
-        <CREATEINDEX>auto</CREATEINDEX>
+        <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-08-25 12:24:40</Step_Last_Change>
+        <Step_Last_Change>2022-08-26 15:54:17</Step_Last_Change>
         <Current_Step>60</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
