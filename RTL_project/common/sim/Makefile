@@ -59,4 +59,13 @@ $(WAVE)/tb_frame_fifo.vcd: $(WORK)/tb_FRAME_FIFO.o
 sim_frame_fifo: $(WAVE)/tb_frame_fifo.vcd
 	gtkwave $^
 
-.PHONY : sim_mutex sim_rmii_tx sim_frame_fifo 
+$(WORK)/tb_MAC_DEC.o: ../src/MAC_DEC.v tb_MAC_DEC.v $(RTL)
+	iverilog $^ -o $@
+
+$(WAVE)/tb_MAC_DEC.vcd: $(WORK)/tb_MAC_DEC.o
+	$^
+
+sim_mac_dec: $(WAVE)/tb_MAC_DEC.vcd
+	gtkwave $^
+
+.PHONY : sim_mutex sim_rmii_tx sim_frame_fifo sim_mac_dec
