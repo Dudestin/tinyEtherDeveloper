@@ -41,6 +41,7 @@ module tb_rmii_tx (
 		rxd1 <= 1'b0;
 		#1000
 		crs_dv <= 1'b1;
+        #1
 		preamble();
 		for (i = 0; i < 100; i = i + 1)
 		begin

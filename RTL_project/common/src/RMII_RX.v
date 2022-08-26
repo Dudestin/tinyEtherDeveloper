@@ -27,36 +27,25 @@ module RMII_RX(
     output reg [7:0] fifo_din;
     output reg fifo_wren;
     // Original FIFO signal    
-    output wire fifo_EOD_in;      // indicates End of Data. Useful to detect frame end.
+    output reg fifo_EOD_in;      // actually wire, indicates End of Data. Useful to detect frame end.
      
     // monitor signal
     output wire [15:0] succ_rx_count_gray;    
-    reg [15:0] succ_rx_count;
+    reg [15:0] succ_rx_count_reg;
     my_bin2gray #(.WIDTH(16)) 
-        succ_gray(.din(succ_rx_count), .dout(succ_rx_count_gray));
+        succ_gray(.din(succ_rx_count_reg), .dout(succ_rx_count_gray));
         
+    // overflowed frame count
     output wire [15:0] buff_OF_count_gray;
-    reg [15:0] buff_OF_count;
+    reg [15:0] buff_OF_count_reg;
     my_bin2gray #(.WIDTH(16))
-        buff_OF_gray (.din(buff_OF_count), .dout(buff_OF_count_gray));    
-    
-    // state 
-    reg [1:0] STATE;
-    localparam S_IDLE = 2'b00,
-          S_PREAMBLE = 2'b01,
-          S_BODY     = 2'b10,
-          S_END      = 2'b11;
-    
-    reg [7:0] seq;
-    reg [1:0] counter;
+        buff_OF_gray (.din(buff_OF_count_reg), .dout(buff_OF_count_gray));    
 
     reg RXD0_lat;
     reg RXD1_lat;
     reg CRS_DV_lat;
     
     wire DV = CRS_DV | CRS_DV_lat; // demodulate DV (Data Valid) Signal
-    assign fifo_EOD_in = (STATE == S_BODY) && (counter == 2'b00) && ~DV;    
-    
     always @(posedge REF_CLK or negedge arst_n)
     begin
         if (~arst_n)
@@ -71,64 +60,96 @@ module RMII_RX(
         end
     end
     
+    // state 
+    reg [1:0] STATE_reg;
+    localparam S_IDLE = 2'b00,
+          S_PREAMBLE = 2'b01,
+          S_BODY     = 2'b10,
+          S_END      = 2'b11;
+    reg [7:0] seq_reg;
+    reg [1:0] cnt_reg;
+
+    reg [1:0] STATE_next;
+    reg [1:0] cnt_next;
+    reg [15:0] succ_rx_count_next;
+    reg [15:0] buff_OF_count_next;
+    reg [7:0] seq_next;
+
+    always @*
+    begin
+        /* default value */
+        STATE_next = STATE_reg;
+        cnt_next   = cnt_reg;
+        succ_rx_count_next = succ_rx_count_reg;
+        buff_OF_count_next = buff_OF_count_reg;
+        seq_next  = {RXD1_lat, RXD0_lat, seq_reg[7:2]};
+        fifo_din  = 8'b0;
+        fifo_wren = 1'b0;
+        fifo_EOD_in = 1'b0; // wire
+
+        case (STATE_reg)
+            S_IDLE : 
+            begin
+                cnt_next = 2'b0;
+                if (CRS_DV)
+                    if (fifo_afull) // overflow
+                        buff_OF_count_next = buff_OF_count_reg + 1'b1;
+                    else
+                        STATE_next = S_PREAMBLE;
+            end
+
+            S_PREAMBLE:
+            begin
+                if (~CRS_DV) // abort
+                    STATE_next = S_IDLE;
+                else if (seq_reg == 8'b1101_0101) // detect SFD
+                    STATE_next = S_BODY;
+            end
+            
+            S_BODY:
+            begin
+                cnt_next = cnt_reg + 2'b1;
+                if (cnt_reg[1:0] == 2'b11)
+                begin
+                    fifo_din  = seq_reg; // wire, ここでseq_regにデータそろってる 
+                    fifo_wren = 1'b1; 
+                    fifo_EOD_in = ~DV;   // EOD
+                    STATE_next = DV ? S_BODY : S_END;
+                end
+            end
+
+            S_END:
+            begin
+                STATE_next = S_IDLE;
+            end
+
+            // undefined state, go to S_END 
+            default
+            begin
+                STATE_next = S_END;
+            end
+                        
+        endcase
+    end
+
     always @(posedge REF_CLK or negedge arst_n)
     begin
         if (~arst_n)
         begin
-            STATE   <= S_IDLE;
-            seq     <= 8'b0;
-            counter <= 2'b0;
-            succ_rx_count <= 16'b0;
-            buff_OF_count <= 16'b0;
-            fifo_wren <= 1'b0;
-            fifo_din  <= 8'b0;
+            STATE_reg <= S_IDLE;
+            cnt_reg <= 2'b0;
+            succ_rx_count_reg <= 16'b0;
+            buff_OF_count_reg <= 16'b0;
+            seq_reg <= 8'b0;
         end
         else
         begin
-            seq <= {RXD1_lat, RXD0_lat, seq[7:2]};
-            fifo_wren <= 1'b0;
-            if (STATE == S_IDLE)
-            begin
-                counter <= 2'b0;
-                if (CRS_DV)
-                    if (fifo_afull)
-                        buff_OF_count <= buff_OF_count + 1'b1;
-                    else
-                        STATE <= S_PREAMBLE;
-            end
-            
-            else if (STATE == S_PREAMBLE)
-            begin
-                if (~CRS_DV)
-                    STATE <= S_IDLE;
-                else if (seq == 8'b1101_0101) // detect SFD
-                    STATE <= S_BODY;
-            end
-                        
-            else if (STATE == S_BODY)
-            begin   
-                counter <= counter + 2'b1;
-                if (counter[1:0] == 2'b11)
-                begin
-                    fifo_din  <= seq;
-                    fifo_wren <= 1'b1;
-                end
-                if (~DV)
-                    STATE <= S_END;
-            end
-            
-            else if (STATE == S_END)
-            begin
-                STATE   <= S_IDLE;
-            end
-
-            // undefined state, go to S_END 
-            else
-            begin
-                STATE <= S_END;
-            end     
-            
+            STATE_reg <= STATE_next;
+            cnt_reg <= cnt_next;
+            succ_rx_count_reg <= succ_rx_count_next;
+            buff_OF_count_reg <= buff_OF_count_next;
+            seq_reg <= seq_next;
         end
     end
-
+    
 endmodule
