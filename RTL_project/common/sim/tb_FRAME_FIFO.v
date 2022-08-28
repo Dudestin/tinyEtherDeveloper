@@ -10,36 +10,40 @@ module tb_FRAME_FIFO();
 	reg re;
 
 	reg rst;
-
+    integer i;
 	initial
 	begin
         $dumpfile("./vcd/tb_frame_fifo.vcd");
         $dumpvars(0, frame_fifo);
 		rst  <= 1'b1;
-		clkw <= 1'b0; clkr <= 1'b0;
-		din  <= 8'b0; EOD_in <= 1'b0;
-		we   <= 1'b0; re   <= 1'b0;
+		clkw <= 1'b0;
+        clkr <= 1'b0;
+		din  <= 8'b0;
+        EOD_in <= 1'b0;
+		we   <= 1'b0;
+        re   <= 1'b0;
 		#1000 rst <= 1'b0;
 		#1000 we <= 1'b1;
 		#100000 re <= 1'b1;
 		#10000 we <= 1'b0;
-		#500000
+		#10000
 		$finish;
 	end
 
+    always @(posedge clkw)
+    begin
+        din <= din + 1'b1;
+    end
+
 	always
 	begin
-		#10 clkw <= 1'b0; #10 clkw <= 1'b1;
+		clkw <= 1'b0; #10; clkw <= 1'b1; #10;
 	end
 	
 	always
 	begin
-		#40 clkr <= 1'b0; #40 clkr <= 1'b1;
+		clkr <= 1'b0; #40; clkr <= 1'b1; #40;
 	end
-
-	always 
-		#20 din <= din + 1'b1;
-
 
 	FRAME_FIFO frame_fifo(
 	.arst_n(~rst),

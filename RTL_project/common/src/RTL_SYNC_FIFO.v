@@ -5,7 +5,7 @@ module RTL_SYNC_FIFO #(
 	parameter AEMPTY_CNT = 2
 )(
 	full_flag ,       // buffer write ready
-	empty_flag ,       // buffer read ready
+	empty_flag,       // buffer read ready
 	afull_flag,
 	aempty_flag,	
 	
@@ -26,15 +26,16 @@ module RTL_SYNC_FIFO #(
 	input wire ren;
 	input wire clk; 
 	input wire rst; 
-	output wire full_flag;
-	output wire empty_flag;
-	output wire aempty_flag;
-	output wire afull_flag;
-	output [WD-1:0] dout;
+	output reg full_flag;
+	output reg empty_flag;
+	output reg aempty_flag;
+	output reg afull_flag;
+	output wire [WD-1:0] dout;
 
 	// wires & regs
 	reg	[WA:0] wr_ad;       // wr address
 	reg [WA:0] rd_ad;       // rd address
+    wire [WA:0] wd_ad_next;
 	wire [WA:0] rd_ad_next;
 
 	reg	 [WD-1:0] rtl_mem [0:FIFO_DEPTH-1];  // memory array
@@ -48,7 +49,7 @@ module RTL_SYNC_FIFO #(
 
 	// memory rd
 	reg [DATA_WIDTH-1:0] dout_reg;
-	assign dout = dout_reg;	
+	assign dout = dout_reg;	 // BRAM-edition
 	always @(posedge clk)
 	begin
 		if (rst)
@@ -56,14 +57,17 @@ module RTL_SYNC_FIFO #(
 		else
 			dout_reg <= rtl_mem[rd_ad_next[WA-1:0]];
 	end
+    // assign dout = rtl_mem[rd_ad[WA-1:0]]; // D-RAM edition
 
 	// write pointer
+    wire [WA:0] wr_ad_next = wr_ad + (wen & ~full_flag);
+
 	always  @(posedge clk)
 	begin
 		if (rst)
 			wr_ad   <= {(WA+1){1'b0}};
 		else
-			wr_ad   <= wr_ad + (wen & ~full_flag);
+			wr_ad   <= wr_ad_next;
 	end
 
 	// read pointer
@@ -75,15 +79,49 @@ module RTL_SYNC_FIFO #(
 		else
 			rd_ad   <= rd_ad_next;
 	end
+
+    // full flag 
+    always @(posedge clk)
+    begin
+        if (rst)
+            full_flag <= 1'b0;
+        else
+            full_flag <= (wr_ad[WA:0] == {~rd_ad[WA], rd_ad[WA-1:0]});
+    end
+
+    // empty flag 
+    reg [WA:0] wr_ad_lat;
+    always @*
+    begin
+        empty_flag = wr_ad_lat == rd_ad;
+    end
+
+    always @(posedge clk)
+    begin
+        if (rst)
+            wr_ad_lat <= {(WA+1){1'b0}};
+        else
+            wr_ad_lat  <= wr_ad;
+    end
+
+	wire [WA:0] diff_adr = {wr_ad_next[WA] ^ rd_ad_next[WA], wr_ad_next[WA-1:0]} - {1'b0, rd_ad_next[WA-1:0]};
+
+    // also full flag
+    always @(posedge clk)
+    begin
+        if (rst)
+            afull_flag <= 1'b0;
+        else
+            afull_flag <= (diff_adr >= AFULL_CNT);
+    end
 	
-	// full flag
-	assign full_flag = (wr_ad[WA-1:0] == rd_ad[WA-1:0]) 
-		&& (wr_ad[WA] != rd_ad[WA]);
-	// empty flag
-	assign empty_flag =(wr_ad == rd_ad);
-	
-	wire diff_adr = {wr_ad[WA] ^ rd_ad[WA], wr_ad[WA-1:0]} - {1'b0, rd_ad[WA-1:0]};
-	assign aempty_flag = (diff_adr <= AEMPTY_CNT);
-	assign afull_flag  = (diff_adr >= AFULL_CNT);
-	
+    // also empty flag    
+    always @(posedge clk)
+    begin
+        if (rst)
+            aempty_flag <= 1'b1;
+        else
+            aempty_flag <= (diff_adr <= AEMPTY_CNT);
+    end
+    
 endmodule
