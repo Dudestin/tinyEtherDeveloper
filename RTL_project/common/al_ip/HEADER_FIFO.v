@@ -32,7 +32,6 @@ module HEADER_FIFO #(
 	output wire empty_flag;
 	output wire full_flag;
 
-	/*
 	RTL_SYNC_FIFO #(
 		.DATA_WIDTH(128),
 		.FIFO_DEPTH_POWER(8), // 14:16384, 15:32768, 16:65536
@@ -50,8 +49,8 @@ module HEADER_FIFO #(
 		.ren(re),       // read enable
 		.clk(clk),       // clock
 		.rst(rst)); 
-		*/
 
+/*
 EG_LOGIC_FIFO #(
  	.DATA_WIDTH_W(WIDTH),
 	.DATA_WIDTH_R(WIDTH),
@@ -79,5 +78,6 @@ logic_fifo(
 	.afull_flag()
 
 );
+*/
 
 endmodule
