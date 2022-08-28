@@ -4,7 +4,7 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	parameter HEADER_DWIDTH = 128
 )(
 	CLK_IN,
-	arst_n,
+	usr_btn,
 	
 	RGB_LED,
 	
@@ -20,31 +20,33 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	localparam PHY_NUM = 4;
 	
 	input wire CLK_IN; // 24 MHz
-	input wire arst_n;	
+	input wire usr_btn;	
 	wire clk;
-	
-	// Sync Reset
-	wire rst_n;         // Active-Low
-	wire rst = ~rst_n;  // Active-High
-	sync_2ff sync_2ff_impl (.clk(clk), .din(arst_n), .dout(rst_n));	
 
-	// generate 100 MHz system clock from 24MHz Clock
+	/* generate 100 MHz system clock from 24MHz Clock */
 	pll_clk100M pll_impl(
 		.refclk(CLK_IN),
 		.reset(1'b0),
 		.extlock(),
 		.clk0_out(clk));
 
+    /* boot reset system */
+    reg [5:0] reset_cnt = 0;
+    wire auto_rst_n = &reset_cnt;
+    always @(posedge clk)
+        reset_cnt <= reset_cnt + !auto_rst_n;
+    // merge user reset and system auto reset
+    wire arst_n = usr_btn & auto_rst_n;
+	
+	/* Sync Reset */
+	wire rst_n;         // Active-Low
+	wire rst = ~rst_n;  // Active-High
+	sync_2ff sync_2ff_impl (.clk(clk), .din(arst_n), .dout(rst_n));	
+
 	output wire [2:0] RGB_LED;
-	reg [27:0] counter;
-	assign RGB_LED[0] = counter[27];
-	assign RGB_LED[1] = counter[27];
-	assign RGB_LED[2] = counter[27];
-	always @(posedge clk or negedge arst_n)
-		if (~arst_n)
-			counter <= 0;
-		else
-			counter <= counter + 1'b1;
+	assign RGB_LED[0] = ~frame_fifo_tx_afull_flag[0];
+	assign RGB_LED[1] = ~frame_fifo_tx_afull_flag[1];
+	assign RGB_LED[2] = ~frame_fifo_tx_afull_flag[2];
 	
 	output wire [3:0] PHY_RST;
 	output wire [3:0] PHY_TXEN;
@@ -88,7 +90,9 @@ module TOP_Simple_RMII_L2_SWITCH #(
 			.RXD0(PHY_RXD0[i]),
 			.RXD1(PHY_RXD1[i])
 		);
-		FRAME_FIFO frame_fifo_rx(
+		FRAME_FIFO #(
+			.AEMPTY_CNT(60)
+		) frame_fifo_rx(
 			.arst_n(arst_n),
 			.di(frame_fifo_rx_fifo_din[i]),
 			.clkw(PHY_REF_CLK[i]),
@@ -280,7 +284,7 @@ module TOP_Simple_RMII_L2_SWITCH #(
 	for (i = 0; i < PHY_NUM; i = i + 1)
 	begin : PHY_TX_INTERFACE
 		FRAME_FIFO #(
-			.AEMPTY_CNT(16)	
+			.AEMPTY_CNT(32)	
 		) frame_fifo_tx (
 			.arst_n(arst_n),
 			.di(frame_fifo_tx_di),

@@ -140,22 +140,26 @@ module MAC_DEC #(
     assign i_fifo_frame_exist = 
         {i3_fifo_frame_exist, i2_fifo_frame_exist, i1_fifo_frame_exist, i0_fifo_frame_exist};   
     
+    wire [3:0] i_fifo_aempty;
+    assign i_fifo_aempty = 
+        {i3_fifo_aempty, i2_fifo_aempty, i1_fifo_aempty, i0_fifo_aempty};
+    
     // MUX by phy_id_reg
     wire [7:0] i_fifo_dout;
     assign i_fifo_dout = (phy_id_reg == 2'b00) ? i0_fifo_dout :
                             (phy_id_reg == 2'b01) ? i1_fifo_dout : 
                             (phy_id_reg == 2'b10) ? i2_fifo_dout :
-                            (phy_id_reg == 2'b11) ? i3_fifo_dout : 2'bzz;
+                            (phy_id_reg == 2'b11) ? i3_fifo_dout : 8'b0;
     wire i_fifo_empty;  
     assign i_fifo_empty  = (phy_id_reg == 2'b00) ? i0_fifo_empty :
                            (phy_id_reg == 2'b01) ? i1_fifo_empty : 
                            (phy_id_reg == 2'b10) ? i2_fifo_empty :
-                           (phy_id_reg == 2'b11) ? i3_fifo_empty : 1'bz;
+                           (phy_id_reg == 2'b11) ? i3_fifo_empty : 1'b0;
     wire i_fifo_del;
     assign i_fifo_del    = (phy_id_reg == 2'b00) ? i0_fifo_del :
                            (phy_id_reg == 2'b01) ? i1_fifo_del : 
                            (phy_id_reg == 2'b10) ? i2_fifo_del :
-                           (phy_id_reg == 2'b11) ? i3_fifo_del : 1'bz;
+                           (phy_id_reg == 2'b11) ? i3_fifo_del : 1'b0;
                            
     // DEMUX input fifo read_enable by phy_id_reg
     reg i_fifo_rden;
@@ -233,7 +237,8 @@ module MAC_DEC #(
         is_ctrl     = (frame_header_reg[63:16] == BPDS_ADDR)  ? 1'b1 : 
                       (frame_header_reg[63:16] == PAUSE_ADDR) ? 1'b1 : 1'b0; // wire
         i_fifo_rden = 1'b0; // wire
-        h_fifo_din  = {12'b0, fcs_correct, is_ctrl, phy_id_reg, frame_header_reg}; // wire
+        // h_fifo_din  = {12'b0, fcs_correct, is_ctrl, phy_id_reg, frame_header_reg}; // wire
+        h_fifo_din  = {12'b0, 1'b1, is_ctrl, phy_id_reg, frame_header_reg};
         h_fifo_wren = 1'b0; // write to header FIFO
         b_fifo_din  = 8'b0; // wire
         b_fifo_del  = 1'b0; // wire
@@ -253,7 +258,8 @@ module MAC_DEC #(
                     STATE_next = S_HEADER;
                     cnt_next   = 4'b0;
                     /* Simple Scheduler */
-                    casex ({i_fifo_frame_exist, i_fifo_half_sync, i_fifo_afull_sync})
+                    casex ({i_fifo_frame_exist, i_fifo_half_sync, i_fifo_afull_sync})     
+                    //casex ({~i_fifo_aempty, i_fifo_half_sync, i_fifo_afull_sync})           
                         /* Highest Priority : most of FRAME-FIFO occupied. */
                         12'bxxxx_xxxx_xxx1 : phy_id_next = 2'd0;
                         12'bxxxx_xxxx_xx10 : phy_id_next = 2'd1;

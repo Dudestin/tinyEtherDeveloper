@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 22:42:06</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>01101111</UCode>
+    <UCode>00011101</UCode>
     <Name>Repeater</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -21,10 +21,12 @@
             <File>../common/al_ip/bram9k.v</File>
             <File>../common/al_ip/bram32k.v</File>
             <File>../common/src/m_seq_32.v</File>
+            <File>../common/al_ip/raw_async_9b_fifo.v</File>
+            <File>../common/src/IP_FRAME_FIFO.v</File>
         </Verilog>
         <ADC_FILE>constraints/io_port12.adc</ADC_FILE>
         <SDC_FILE>Repeater.sdc</SDC_FILE>
-        <CWC_FILE>rx_3.cwc</CWC_FILE>
+        <CWC_FILE>tx_hoge.cwc</CWC_FILE>
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
@@ -32,8 +34,8 @@
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Project_Settings>
-        <Step_Last_Change>2022-08-26 17:35:02</Step_Last_Change>
-        <Current_Step>60</Current_Step>
+        <Step_Last_Change>2022-08-28 12:53:22</Step_Last_Change>
+        <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>

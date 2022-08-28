@@ -16,13 +16,13 @@ set_input_delay -clock phy1_ref_clk -min 2 [get_ports {PHY_CRS_DV[1]} {PHY_RXD0[
 set_input_delay -clock phy2_ref_clk -min 2 [get_ports {PHY_CRS_DV[2]} {PHY_RXD0[2]} {PHY_RXD1[2]}]
 set_input_delay -clock phy3_ref_clk -min 2 [get_ports {PHY_CRS_DV[3]} {PHY_RXD0[3]} {PHY_RXD1[3]}]
 set_output_delay -clock phy0_ref_clk -min 2 [get_ports {PHY_TXD0[0]} {PHY_TXD1[0]} {PHY_TXEN[0]}]
-set_output_delay -clock phy0_ref_clk -max 4 [get_ports {PHY_TXD0[0]} {PHY_TXD1[0]} {PHY_TXEN[0]}]
+set_output_delay -clock phy0_ref_clk -max 16 [get_ports {PHY_TXD0[0]} {PHY_TXD1[0]} {PHY_TXEN[0]}]
 set_output_delay -clock phy1_ref_clk -min 2 [get_ports {PHY_TXD0[1]} {PHY_TXD1[1]} {PHY_TXEN[1]}]
-set_output_delay -clock phy1_ref_clk -max 4 [get_ports {PHY_TXD0[1]} {PHY_TXD1[1]} {PHY_TXEN[1]}]
+set_output_delay -clock phy1_ref_clk -max 16 [get_ports {PHY_TXD0[1]} {PHY_TXD1[1]} {PHY_TXEN[1]}]
 set_output_delay -clock phy2_ref_clk -min 2 [get_ports {PHY_TXD0[2]} {PHY_TXD1[2]} {PHY_TXEN[2]}]
-set_output_delay -clock phy2_ref_clk -max 4 [get_ports {PHY_TXD0[2]} {PHY_TXD1[2]} {PHY_TXEN[2]}]
+set_output_delay -clock phy2_ref_clk -max 16 [get_ports {PHY_TXD0[2]} {PHY_TXD1[2]} {PHY_TXEN[2]}]
 set_output_delay -clock phy3_ref_clk -min 2 [get_ports {PHY_TXD0[3]} {PHY_TXD1[3]} {PHY_TXEN[3]}]
-set_output_delay -clock phy3_ref_clk -max 4 [get_ports {PHY_TXD0[3]} {PHY_TXD1[3]} {PHY_TXEN[3]}]
+set_output_delay -clock phy3_ref_clk -max 16 [get_ports {PHY_TXD0[3]} {PHY_TXD1[3]} {PHY_TXEN[3]}]
 
 #Set Clock Groups
 set_clock_groups -asynchronous -group [get_clocks {raw_clock}] -group [get_clocks {phy0_ref_clk}] -group [get_clocks {phy1_ref_clk}] -group [get_clocks {phy2_ref_clk}] -group [get_clocks {phy3_ref_clk}]

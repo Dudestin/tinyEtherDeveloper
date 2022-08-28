@@ -1,23 +1,24 @@
+COMDIR = ../../common/src
 RTLDIR = ../src
 IPDIR  = ../../common/al_ip
 TBDIR  = ./
 WAVE   = ./vcd
 WORK   = ./work
 
-RTL  = $(RTLDIR)/MAC_SWITCH.v
-RTL += $(RTLDIR)/MAC_DEC.v
-RTL += $(RTLDIR)/sync_2ff.v
-RTL += $(RTLDIR)/vec_sync_2ff.v
-RTL += $(RTLDIR)/crc.v
+RTL  = ../src/NEW_MAC_SWITCH.v
+RTL += $(COMDIR)/MAC_DEC.v
+RTL += $(COMDIR)/sync_2ff.v
+RTL += $(COMDIR)/vec_sync_2ff.v
+RTL += $(COMDIR)/crc.v
 
-RTL += $(RTLDIR)/RMII_TX.v
-RTL += $(RTLDIR)/RMII_RX.v
-RTL += $(RTLDIR)/SNI_TX.v
-RTL += $(RTLDIR)/SNI_RX.v
-RTL += $(RTLDIR)/bin2gray.v
-RTL += $(RTLDIR)/gray2bin.v
-RTL += $(RTLDIR)/m_seq_32.v
-RTL += $(RTLDIR)/mutex.v
+RTL += $(COMDIR)/RMII_TX.v
+RTL += $(COMDIR)/RMII_RX.v
+RTL += $(COMDIR)/SNI_TX.v
+RTL += $(COMDIR)/SNI_RX.v
+RTL += $(COMDIR)/bin2gray.v
+RTL += $(COMDIR)/gray2bin.v
+RTL += $(COMDIR)/m_seq_32.v
+RTL += $(COMDIR)/mutex.v
 
 RTL += $(RTLDIR)/verilog-cam/rtl/cam.v
 RTL += $(RTLDIR)/verilog-cam/rtl/cam_srl.v

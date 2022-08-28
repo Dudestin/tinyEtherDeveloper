@@ -151,7 +151,8 @@ module RMII_TX #(
                 end
             end
 
-            if (fifo_empty) // if fifo become empty before EOD comming, abort.
+            //if (fifo_empty & ~fifo_EOD_out) // if fifo become empty before EOD comming, abort.
+			if (fifo_empty)    
             begin
                 cnt_next = 0;
                 fifo_rden = 1'b0;

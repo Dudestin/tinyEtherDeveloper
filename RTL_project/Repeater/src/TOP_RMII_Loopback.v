@@ -70,8 +70,8 @@ module TOP_RMII_repeater(
 	wire fifo_aempty_0;
 	wire fifo_EOD_out_0;
 	wire [7:0] fifo_dout_0;
-	FRAME_FIFO # (
-		.AEMPTY_CNT(64)
+	FRAME_FIFO #(
+		.AEMPTY_CNT(60)
 	) frame_fifo_0 (
 	.arst_n(arst_n),
 	.di(fifo_din_0), .clkw(PHY0_REF_CLK), .we(fifo_wren_0),
@@ -79,7 +79,7 @@ module TOP_RMII_repeater(
 	.empty_flag(fifo_empty_0), .aempty_flag(fifo_aempty_0), 
 	.full_flag(), .afull_flag(fifo_afull_0),
 	// my original signal
-	.half_flag(), // half of FIFO occupied, useful to implement smart schedular
+	// .half_flag(), // half of FIFO occupied, useful to implement smart schedular
 	.EOD_in(fifo_EOD_in_0), .EOD_out(fifo_EOD_out_0)
 	);
 
@@ -100,8 +100,8 @@ module TOP_RMII_repeater(
 	wire fifo_empty_1;
 	wire fifo_aempty_1;
 	wire fifo_EOD_out_1;
-	FRAME_FIFO # (
-		.AEMPTY_CNT(64)
+	FRAME_FIFO #(
+		.AEMPTY_CNT(60)
 	) frame_fifo_1 (
 	.arst_n(arst_n),
 	.di(fifo_din_1), .clkw(PHY1_REF_CLK), .we(fifo_wren_1),
@@ -109,7 +109,7 @@ module TOP_RMII_repeater(
 	.empty_flag(fifo_empty_1), .aempty_flag(fifo_aempty_1), 
 	.full_flag(), .afull_flag(fifo_afull_1),
 	// my original signal
-	.half_flag(), // half of FIFO occupied, useful to implement smart schedular
+	// .half_flag(), // half of FIFO occupied, useful to implement smart schedular
 	.EOD_in(fifo_EOD_in_1), .EOD_out(fifo_EOD_out_1)
 	);
 

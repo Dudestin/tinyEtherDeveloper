@@ -60,7 +60,8 @@ module MAC_SWITCH #(
 	input  wire [7:0] b_fifo_dout;	
 	reg b_fifo_rden_reg;
 	output wire b_fifo_rden;
-	assign b_fifo_rden = b_fifo_rden_reg;
+    //	assign b_fifo_rden = b_fifo_rden_reg;
+    assign b_fifo_rden = (STATE == S_TX_PAYLOAD) & ~b_fifo_empty;
 	input  wire b_fifo_empty;
 	input  wire b_fifo_del; // delimiter
 
@@ -234,7 +235,7 @@ module MAC_SWITCH #(
 			if (STATE == S_IDLE)
 			begin
 				cnt_reg <= 5'b0;
-				if (~h_fifo_empty & ~h_IS_CTRL_FRAME) // ignore control frame
+				if (~h_fifo_empty/*& ~h_IS_CTRL_FRAME */) // ignore control frame
 				begin
 					header_fetched <= h_fifo_dout;
 					STATE          <= S_H_FETCH;
@@ -307,7 +308,7 @@ module MAC_SWITCH #(
 			/* await aquiring corresponding PHY-FIFO's MUTEX */
 			else if (STATE == S_AWAIT_MUTEX)
 			begin
-				if (mutex_val == mutex_req) // await aquiring all need mutex 
+				if (&((mutex_req & mutex_val)|~mutex_req)) // await aquiring all need mutex 
 				begin
 					match_port_reg <= mutex_req & ~fifo_afull_list; // if fifo is also full, discard the frame. 
 					STATE <= S_TX_HEADER;
@@ -318,8 +319,7 @@ module MAC_SWITCH #(
 			else if (STATE == S_TX_HEADER)
 			begin
 				cnt_reg <= cnt_reg + 1'b1;
-				if (cnt_reg == 5'b0)
-					o_fifo_wren_reg <= match_port_reg;
+				o_fifo_wren_reg <= match_port_reg;
 
 				case (cnt_reg)
 					// send Destination MAC Address Section
@@ -338,13 +338,13 @@ module MAC_SWITCH #(
 					5'd11 : tx_word_reg <= h_SRC_MAC[7:0];
 					// send TYPE Section
 					5'd12 : tx_word_reg <= h_TYPE[15:8];
-					5'd13 : tx_word_reg <= h_TYPE[7:0];
-					default : 
+					5'd13 : 
 					begin
-						o_fifo_wren_reg <= 4'b0;
-						STATE   <= S_TX_PAYLOAD;
-						cnt_reg <= 5'b0;
+							tx_word_reg <= h_TYPE[7:0];
+							cnt_reg <= 5'b0;
+							STATE   <= S_TX_PAYLOAD;
 					end
+					default :;
 				endcase
 			end
 
@@ -352,7 +352,7 @@ module MAC_SWITCH #(
 			else if (STATE == S_TX_PAYLOAD)
 			begin
 				tx_word_reg <= b_fifo_dout;
-				b_fifo_rden_reg <= 1'b1;
+				// b_fifo_rden_reg <= 1'b1;
 				o_fifo_wren_reg <= match_port_reg;
 				if (b_fifo_del)        // reach tail of frame
 				begin
@@ -362,7 +362,7 @@ module MAC_SWITCH #(
 				end
 				else if (b_fifo_empty) // if fifo is empty, stole process
 				begin
-					b_fifo_rden_reg <= 1'b0;
+					// b_fifo_rden_reg <= 1'b0;
 					o_fifo_wren_reg <= 4'b0;
 				end
 			end	

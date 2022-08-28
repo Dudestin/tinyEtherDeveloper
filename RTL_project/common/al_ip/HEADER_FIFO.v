@@ -28,9 +28,29 @@ module HEADER_FIFO #(
 	input clk, we;
 	input re;
 
-	output [WIDTH-1:0] do;
-	output empty_flag;
-	output full_flag;
+	output wire [WIDTH-1:0] do;
+	output wire empty_flag;
+	output wire full_flag;
+
+	/*
+	RTL_SYNC_FIFO #(
+		.DATA_WIDTH(128),
+		.FIFO_DEPTH_POWER(8), // 14:16384, 15:32768, 16:65536
+		.AFULL_CNT(200),
+		.AEMPTY_CNT(10)  
+	) raw_header_rtl_fifo (
+		.full_flag(full_flag),       // buffer write ready
+		.empty_flag(empty_flag),       // buffer read ready
+		.afull_flag(),
+		.aempty_flag(),
+		.din(di),       // read data out
+
+		.dout(do),       // write data in
+		.wen(we),       // write enable
+		.ren(re),       // read enable
+		.clk(clk),       // clock
+		.rst(rst)); 
+		*/
 
 EG_LOGIC_FIFO #(
  	.DATA_WIDTH_W(WIDTH),
