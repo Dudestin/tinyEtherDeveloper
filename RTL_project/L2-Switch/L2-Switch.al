@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 12:10:52</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>10111011</UCode>
+    <UCode>00111001</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -10,37 +10,31 @@
     </HardWare>
     <Source_Files>
         <Verilog>
-            <File>src/CTRL_FRAME_FETCHER.v</File>
-            <File>src/CTRL_FRAME_ISSUER.v</File>
             <File>src/verilog-cam/rtl/cam.v</File>
             <File>src/verilog-cam/rtl/cam_srl.v</File>
             <File>../common/src/bin2gray.v</File>
             <File>../common/src/crc.v</File>
             <File>../common/src/FRAME_FIFO.v</File>
             <File>../common/src/gray2bin.v</File>
-            <File>../common/src/m_seq_32.v</File>
             <File>../common/src/MAC_DEC.v</File>
-            <File>../common/src/MDIO.v</File>
-            <File>../common/src/mutex.v</File>
-            <File>../common/src/NEW_PACKET_FIFO.v</File>
             <File>../common/src/RMII_RX.v</File>
             <File>../common/src/RMII_TX.v</File>
             <File>../common/src/RTL_SYNC_FIFO.v</File>
-            <File>../common/src/SNI_RX.v</File>
-            <File>../common/src/SNI_TX.v</File>
             <File>../common/src/sync_2ff.v</File>
             <File>../common/src/vec_sync_2ff.v</File>
             <File>../common/al_ip/bram9k.v</File>
-            <File>../common/al_ip/BRAM9Kx32.v</File>
             <File>../common/al_ip/bram32k.v</File>
-            <File>../common/al_ip/CTRL_FRAME_RAM.v</File>
             <File>../common/al_ip/HEADER_FIFO.v</File>
             <File>../common/al_ip/pll_clk100M.v</File>
             <File>../common/al_ip/ram_dp_ip.v</File>
             <File>src/TOP_Simple_RMII_L2_SWITCH.v</File>
-            <File>../common/al_ip/raw_9b_fifo.v</File>
             <File>../common/src/PACKET_FIFO.v</File>
             <File>src/NEW_MAC_SWITCH.v</File>
+            <File>src/TOP_L2_SWITCH.v</File>
+            <File>src/soc/rtl/picosoc.v</File>
+            <File>src/soc/rtl/simpleuart.v</File>
+            <File>src/soc/rtl/picorv32.v</File>
+            <File>src/soc/rtl/al_ip/sram9k.v</File>
         </Verilog>
         <ADC_FILE>constraints/rmii_io.adc</ADC_FILE>
         <SDC_FILE>constraints/rmii_timing.sdc</SDC_FILE>
@@ -48,12 +42,25 @@
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
-        <MODULE>TOP_Simple_RMII_L2_SWITCH</MODULE>
+        <MODULE>TOP_L2_SWITCH</MODULE>
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
+    <Property>
+        <GateProperty/>
+        <PlaceProperty/>
+        <RouteProperty/>
+        <TimingProperty/>
+        <GlobalProperty/>
+        <DesignProperty/>
+        <RtlProperty/>
+        <SimProperty/>
+        <BitgenProperty::GeneralOption>
+            <s>off</s>
+        </BitgenProperty::GeneralOption>
+    </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-08-28 19:43:49</Step_Last_Change>
-        <Current_Step>0</Current_Step>
+        <Step_Last_Change>2022-08-30 13:53:42</Step_Last_Change>
+        <Current_Step>60</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>

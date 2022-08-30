@@ -1,4 +1,11 @@
+# Tang PriMER general interface
 set_pin_assignment	{ CLK_IN }	{ LOCATION = K14; }
+set_pin_assignment	{ usr_btn }	{ LOCATION = K16; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ RGB_LED[0] }	{ LOCATION = R3; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ RGB_LED[1] }	{ LOCATION = J14; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ RGB_LED[2] }	{ LOCATION = P13; IOSTANDARD = LVTTL33; }
+
+# RMII
 set_pin_assignment	{ PHY_CRS_DV[0] }	{ LOCATION = N3; IOSTANDARD = LVTTL33; INDEL = 15; }
 set_pin_assignment	{ PHY_CRS_DV[1] }	{ LOCATION = D5; IOSTANDARD = LVTTL33; INDEL = 15; }
 set_pin_assignment	{ PHY_CRS_DV[2] }	{ LOCATION = A14; IOSTANDARD = LVTTL33; INDEL = 15; }
@@ -31,9 +38,9 @@ set_pin_assignment	{ PHY_TXEN[0] }	{ LOCATION = M4; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_TXEN[1] }	{ LOCATION = A4; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_TXEN[2] }	{ LOCATION = B8; IOSTANDARD = LVTTL33; }
 set_pin_assignment	{ PHY_TXEN[3] }	{ LOCATION = F16; IOSTANDARD = LVTTL33; }
-set_pin_assignment	{ RGB_LED[0] }	{ LOCATION = R3; IOSTANDARD = LVTTL33; }
-set_pin_assignment	{ RGB_LED[1] }	{ LOCATION = J14; IOSTANDARD = LVTTL33; }
-set_pin_assignment	{ RGB_LED[2] }	{ LOCATION = P13; IOSTANDARD = LVTTL33; }
-set_pin_assignment	{ usr_btn }	{ LOCATION = K16; IOSTANDARD = LVTTL33; }
 
+
+# SoC Interface
+set_pin_assignment	{ soc_uart_rx }	{ LOCATION = R15; IOSTANDARD = LVTTL33; }
+set_pin_assignment	{ soc_uart_tx }	{ LOCATION = T15; IOSTANDARD = LVTTL33; }
 

@@ -61,7 +61,7 @@ module picosoc (
 
 	parameter integer MEM_WORDS = 4096;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
-	parameter [31:0] PROGADDR_RESET = 32'h0000_0010;
+	parameter [31:0] PROGADDR_RESET = 32'h0000_0010;  // PC start address
 	parameter [31:0] PROGADDR_IRQ = 32'h0000_0000;
 
 	reg [31:0] irq;
@@ -87,9 +87,6 @@ module picosoc (
 
 	reg ram_ready;
 	wire [31:0] ram_rdata;
-	
-	wire sdram_ready;
-	wire [31:0] sdram_rdata;
 
 	assign iomem_valid = mem_valid && (mem_addr[31:24] > 8'h02);
 	assign iomem_wstrb = mem_wstrb;
@@ -151,17 +148,6 @@ module picosoc (
 		.reg_dat_di  (mem_wdata),
 		.reg_dat_do  (simpleuart_reg_dat_do),
 		.reg_dat_wait(simpleuart_reg_dat_wait)
-	);
-	
-	sys_sdram sys_sdram_impl(
-    	.clk(clk),
-    	.rst_n(resetn),
-    	.i_valid(mem_valid & (mem_addr[31:24] == 8'h01)),
-    	.o_ready(sdram_ready),
-    	.i_addr({8'b0, mem_addr[23:0]}),
-    	.i_wdata(mem_wdata),
-    	.i_wstrb((mem_addr[31:24] == 8'h01) ? mem_wstrb : 4'b0),
-    	.o_rdata(sdram_rdata)
 	);
 
 	always @(posedge clk)
