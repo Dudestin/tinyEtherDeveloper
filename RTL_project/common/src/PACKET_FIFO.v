@@ -49,14 +49,4 @@ module PACKET_FIFO #(
 		.clk(clk),       // clock
 		.rst(~arst_n)); 
 
-/*
-	raw_9b_fifo raw_fifo (
-		.rst(~arst_n),
-		.di(raw_di), .clk(clk), .we(we),
-		.do(raw_do), .re(re),
-		.empty_flag(empty_flag), .aempty_flag(aempty_flag),
-		.full_flag(full_flag), .afull_flag(afull_flag) 
-	);
-	*/
-
 endmodule

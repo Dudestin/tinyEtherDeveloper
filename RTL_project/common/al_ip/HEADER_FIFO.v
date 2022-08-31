@@ -49,35 +49,6 @@ module HEADER_FIFO #(
 		.ren(re),       // read enable
 		.clk(clk),       // clock
 		.rst(rst)); 
-
-/*
-EG_LOGIC_FIFO #(
- 	.DATA_WIDTH_W(WIDTH),
-	.DATA_WIDTH_R(WIDTH),
-	.DATA_DEPTH_W(512),
-	.DATA_DEPTH_R(512),
-	.ENDIAN("BIG"),
-	.RESETMODE("SYNC"),
-	.E(0),
-	.F(512),
-	.ASYNC_RESET_RELEASE("SYNC"))
-logic_fifo(
-	.rst(rst),
-	.di(di),
-	.clkw(clk),
-	.we(we),
-	.csw(3'b111),
-	.do(do),
-	.clkr(clk),
-	.re(re),
-	.csr(3'b111),
-	.ore(1'b0),
-	.empty_flag(empty_flag),
-	.aempty_flag(),
-	.full_flag(full_flag),
-	.afull_flag()
-
 );
-*/
 
 endmodule

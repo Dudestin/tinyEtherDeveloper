@@ -1,25 +1,27 @@
 // Verilog netlist created by TD v4.6.14756
-// Tue Aug 30 13:45:42 2022
+// Wed Aug 31 11:00:19 2022
 
 `timescale 1ns / 1ps
-module pll_clk100M  // ../common/al_ip/pll_clk100M.v(22)
+module pll_clk100M  // ../common/al_ip/pll_clk100M.v(23)
   (
   refclk,
   reset,
   clk0_out,
+  clk1_out,
   extlock
   );
 
-  input refclk;  // ../common/al_ip/pll_clk100M.v(27)
-  input reset;  // ../common/al_ip/pll_clk100M.v(28)
-  output clk0_out;  // ../common/al_ip/pll_clk100M.v(30)
-  output extlock;  // ../common/al_ip/pll_clk100M.v(29)
+  input refclk;  // ../common/al_ip/pll_clk100M.v(29)
+  input reset;  // ../common/al_ip/pll_clk100M.v(30)
+  output clk0_out;  // ../common/al_ip/pll_clk100M.v(32)
+  output clk1_out;  // ../common/al_ip/pll_clk100M.v(33)
+  output extlock;  // ../common/al_ip/pll_clk100M.v(31)
 
-  wire clk0_buf;  // ../common/al_ip/pll_clk100M.v(32)
+  wire clk0_buf;  // ../common/al_ip/pll_clk100M.v(35)
 
   EG_PHY_GCLK bufg_feedback (
     .clki(clk0_buf),
-    .clko(clk0_out));  // ../common/al_ip/pll_clk100M.v(34)
+    .clko(clk0_out));  // ../common/al_ip/pll_clk100M.v(37)
   EG_PHY_CONFIG #(
     .DONE_PERSISTN("ENABLE"),
     .INIT_PERSISTN("ENABLE"),
@@ -27,15 +29,15 @@ module pll_clk100M  // ../common/al_ip/pll_clk100M.v(22)
     .PROGRAMN_PERSISTN("DISABLE"))
     config_inst ();
   EG_PHY_PLL #(
-    .CLKC0_CPHASE(20),
-    .CLKC0_DIV(21),
+    .CLKC0_CPHASE(9),
+    .CLKC0_DIV(10),
     .CLKC0_DIV2_ENABLE("DISABLE"),
     .CLKC0_ENABLE("ENABLE"),
     .CLKC0_FPHASE(0),
-    .CLKC1_CPHASE(1),
-    .CLKC1_DIV(1),
+    .CLKC1_CPHASE(19),
+    .CLKC1_DIV(20),
     .CLKC1_DIV2_ENABLE("DISABLE"),
-    .CLKC1_ENABLE("DISABLE"),
+    .CLKC1_ENABLE("ENABLE"),
     .CLKC1_FPHASE(0),
     .CLKC2_CPHASE(1),
     .CLKC2_DIV(1),
@@ -52,10 +54,10 @@ module pll_clk100M  // ../common/al_ip/pll_clk100M.v(22)
     .CLKC4_DIV2_ENABLE("DISABLE"),
     .CLKC4_ENABLE("DISABLE"),
     .CLKC4_FPHASE(0),
-    .DERIVE_PLL_CLOCKS("DISABLE"),
+    .DERIVE_PLL_CLOCKS("ENABLE"),
     .DPHASE_SOURCE("DISABLE"),
     .DYNCFG("DISABLE"),
-    .FBCLK_DIV(2),
+    .FBCLK_DIV(4),
     .FEEDBK_MODE("NORMAL"),
     .FEEDBK_PATH("CLKC0_EXT"),
     .FIN("24.000"),
@@ -105,8 +107,8 @@ module pll_clk100M  // ../common/al_ip/pll_clk100M.v(22)
     .refclk(refclk),
     .reset(reset),
     .stdby(1'b0),
-    .clkc({open_n47,open_n48,open_n49,open_n50,clk0_buf}),
-    .extlock(extlock));  // ../common/al_ip/pll_clk100M.v(57)
+    .clkc({open_n47,open_n48,open_n49,clk1_out,clk0_buf}),
+    .extlock(extlock));  // ../common/al_ip/pll_clk100M.v(64)
 
 endmodule 
 
