@@ -25,5 +25,5 @@ set_output_delay -clock phy3_ref_clk -min 2 [get_ports {PHY_TXD0[3]} {PHY_TXD1[3
 set_output_delay -clock phy3_ref_clk -max 16 [get_ports {PHY_TXD0[3]} {PHY_TXD1[3]} {PHY_TXEN[3]}]
 
 #Set Clock Groups
-set_clock_groups -asynchronous -group [get_clocks {raw_clock}] -group [get_clocks {phy0_ref_clk}] -group [get_clocks {phy1_ref_clk}] -group [get_clocks {phy2_ref_clk}] -group [get_clocks {phy3_ref_clk}]
+set_clock_groups -asynchronous -group [get_clocks {raw_clock}] -group [get_clocks {phy0_ref_clk}] -group [get_clocks {phy1_ref_clk}] -group [get_clocks {phy2_ref_clk}] -group [get_clocks {phy3_ref_clk}]# -group [get_clocks {pll_impl/pll_inst.clkc[0]}] -group [get_clocks {pll_impl/pll_inst.clkc[1]}]
 

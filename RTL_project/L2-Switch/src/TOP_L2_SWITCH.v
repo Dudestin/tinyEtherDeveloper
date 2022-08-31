@@ -25,13 +25,15 @@ module TOP_L2_SWITCH #(
 	input wire CLK_IN; // 24 MHz
 	input wire usr_btn;	
 	wire clk;
+	wire soc_clk;
 
-	/* generate 100 MHz system clock from 24MHz Clock */
+	/* generate 48 MHz system clock from 24MHz Clock */
 	pll_clk100M pll_impl(
 		.refclk(CLK_IN),
 		.reset(1'b0),
 		.extlock(),
-		.clk0_out(clk));
+		.clk0_out(clk), // 100MHz
+		.clk1_out(soc_clk)); // 50 MHz
 
     /* reset system */
     /* push USER PUSH BUTTON on the Tang PriMER to reset the circuit */
@@ -45,9 +47,9 @@ module TOP_L2_SWITCH #(
         	reset_cnt <= reset_cnt + !rst_n;
 
 	output wire [2:0] RGB_LED;
-	assign RGB_LED[0] = 1'b1;
-	assign RGB_LED[1] = 1'b1;
-	assign RGB_LED[2] = 1'b1;
+	assign RGB_LED[0] = rst;
+	assign RGB_LED[1] = rst;
+	assign RGB_LED[2] = rst;
 	
 	output wire [3:0] PHY_RST;
 	output wire [3:0] PHY_TXEN;
@@ -352,11 +354,24 @@ module TOP_L2_SWITCH #(
 		endian_conv = {din[7:0], din[15:8], din[23:16], din[31:24]};
 	endfunction	
 	
+	/*
+	wire [15:0] phy_rx_succ_rx_count_sync[0:3];
+	wire [15:0] phy_rx_buff_OF_count_sync[0:3];
+	wire [15:0] phy_tx_succ_tx_count_gray[0:3];
+	wire [15:0] phy_tx_fail_tx_count_gray[0:3];
+	generate
+		for (i = 0; i < 4; i = i + 1)
+		begin
+			vec_sync_2ff soc_io_sync_impl (.clk(soc_));
+		end
+	endgenerate
+	*/
+	
 	always @(posedge clk) begin
 		iomem_ready <= 0;
 		if (iomem_valid && !iomem_ready) begin
 			case (iomem_addr)
-				/* PHY 0 */
+				// PHY 0 
 				32'h03_00_00_00 : // reg_phy0_rx_succ_count_gray
 				begin
 					iomem_ready <= 1;
@@ -377,7 +392,7 @@ module TOP_L2_SWITCH #(
 					iomem_ready <= 1;
 					iomem_rdata <= endian_conv({phy_tx_fail_tx_count_gray[0], 16'b0});					
 				end
-				/* PHY 1*/	
+				// PHY 1
 				32'h03_00_01_00 : // reg_phy1_rx_succ_count_gray
 				begin
 					iomem_ready <= 1;
@@ -398,7 +413,7 @@ module TOP_L2_SWITCH #(
 					iomem_ready <= 1;
 					iomem_rdata <= endian_conv({phy_tx_fail_tx_count_gray[1], 16'b0});					
 				end
-				/* PHY 2 */				
+				// PHY 2			
 				32'h03_00_02_00 : // reg_phy2_rx_succ_count_gray
 				begin
 					iomem_ready <= 1;
@@ -419,7 +434,7 @@ module TOP_L2_SWITCH #(
 					iomem_ready <= 1;
 					iomem_rdata <= endian_conv({phy_tx_fail_tx_count_gray[2], 16'b0});					
 				end						
-				/* PHY 3 */
+				// PHY 3
 				32'h03_00_03_00 : // reg_phy3_rx_succ_count_gray 
 				begin
 					iomem_ready <= 1;
@@ -445,34 +460,27 @@ module TOP_L2_SWITCH #(
 		end
 	end	
 	
-	/*
-	reg [31:0] gpio;
-	assign leds = gpio;
-	always @(posedge clk) begin
-		if (!rst_n) begin
-			gpio <= 0;
-		end else begin
-			iomem_ready <= 0;
-			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h03) begin
-				iomem_ready <= 1;
-				iomem_rdata <= gpio;
-				if (iomem_wstrb[0]) gpio[ 7: 0] <= iomem_wdata[ 7: 0];
-				if (iomem_wstrb[1]) gpio[15: 8] <= iomem_wdata[15: 8];
-				if (iomem_wstrb[2]) gpio[23:16] <= iomem_wdata[23:16];
-				if (iomem_wstrb[3]) gpio[31:24] <= iomem_wdata[31:24];
-			end
-		end
-	end
-	*/
+    /* reset system */
+    /* push USER PUSH BUTTON on the Tang PriMER to reset the circuit */
+    reg [5:0] soc_reset_cnt = 0;
+    wire soc_rst_n = &soc_reset_cnt;
+	wire soc_rst = ~soc_rst_n;  // Active-High;	
+    always @(posedge soc_clk)
+    	if (~usr_btn)
+    		soc_reset_cnt <= 0;
+    	else
+        	soc_reset_cnt <= soc_reset_cnt + !soc_rst_n;	
 	
 	picosoc #(
 		.BARREL_SHIFTER(1),
 		.ENABLE_MUL(0),
 		.ENABLE_DIV(0),
-		.ENABLE_FAST_MUL(0)
+		.ENABLE_FAST_MUL(0),
+		.ENABLE_REGS_DUALPORT(1),
+		.TWO_CYCLE_ALU(0)
 	) soc (
-		.clk          (clk         ),
-		.resetn       (rst_n       ),
+		.clk          (soc_clk     ),
+		.resetn       (soc_rst_n   ),
 
 		.ser_tx       (soc_uart_tx ),
 		.ser_rx       (soc_uart_rx ),
@@ -487,6 +495,6 @@ module TOP_L2_SWITCH #(
 		.iomem_addr   (iomem_addr  ),
 		.iomem_wdata  (iomem_wdata ),
 		.iomem_rdata  (iomem_rdata )
-	);		
+	);	
 	
 endmodule

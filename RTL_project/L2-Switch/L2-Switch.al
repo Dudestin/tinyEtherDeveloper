@@ -16,7 +16,6 @@
             <File>../common/src/crc.v</File>
             <File>../common/src/FRAME_FIFO.v</File>
             <File>../common/src/gray2bin.v</File>
-            <File>../common/src/MAC_DEC.v</File>
             <File>../common/src/RMII_RX.v</File>
             <File>../common/src/RMII_TX.v</File>
             <File>../common/src/RTL_SYNC_FIFO.v</File>
@@ -29,12 +28,14 @@
             <File>../common/al_ip/ram_dp_ip.v</File>
             <File>src/TOP_Simple_RMII_L2_SWITCH.v</File>
             <File>../common/src/PACKET_FIFO.v</File>
-            <File>src/NEW_MAC_SWITCH.v</File>
             <File>src/TOP_L2_SWITCH.v</File>
             <File>src/soc/rtl/picosoc.v</File>
             <File>src/soc/rtl/simpleuart.v</File>
             <File>src/soc/rtl/picorv32.v</File>
             <File>src/soc/rtl/al_ip/sram9k.v</File>
+            <File>src/MAC_SWITCH.v</File>
+            <File>al_ip/soc_reg_bram.v</File>
+            <File>../common/src/LATCH_MAC_DEC.v</File>
         </Verilog>
         <ADC_FILE>constraints/rmii_io.adc</ADC_FILE>
         <SDC_FILE>constraints/rmii_timing.sdc</SDC_FILE>
@@ -46,9 +47,15 @@
         <CREATEINDEX>user</CREATEINDEX>
     </TOP_MODULE>
     <Property>
-        <GateProperty/>
-        <PlaceProperty/>
-        <RouteProperty/>
+        <GateProperty>
+            <opt_timing>high</opt_timing>
+        </GateProperty>
+        <PlaceProperty>
+            <opt_timing>high</opt_timing>
+        </PlaceProperty>
+        <RouteProperty>
+            <opt_timing>high</opt_timing>
+        </RouteProperty>
         <TimingProperty/>
         <GlobalProperty/>
         <DesignProperty/>
@@ -59,8 +66,8 @@
         </BitgenProperty::GeneralOption>
     </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-08-30 13:53:42</Step_Last_Change>
-        <Current_Step>60</Current_Step>
+        <Step_Last_Change>2022-08-31 14:05:40</Step_Last_Change>
+        <Current_Step>10</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>
