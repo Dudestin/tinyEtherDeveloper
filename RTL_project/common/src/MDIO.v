@@ -1,5 +1,5 @@
 /* Simple MDIO memory mapped interface */
-/* Address assign: [31:24] - 8'h07, [12:8] - PHY-ID, [4:0] - Register-ID */
+/* Address assign: [31:24] - 8'h07, [12:8] - PHY-ID, [6:2] - Register-ID */
 /* Data assign   : transmit index sequence 7 -> 0, 15 -> 8 (little endian byte assign) */
 
 module MDIO (
@@ -7,8 +7,8 @@ module MDIO (
     arst_n,
 
 	/* MDIO interface */
-    MDC,
-    MDIO,
+    mdc,
+    mdio,
     
     /* picosoc IO interface */
     iomem_valid,
@@ -21,45 +21,6 @@ module MDIO (
 	input wire clk;
 	input wire arst_n;
 
-	/* Data transfer interface */
-	input         iomem_valid;
-	output  reg   iomem_ready;
-	input  [ 3:0] iomem_wstrb;
-	input  [31:0] iomem_addr;
-	input  [31:0] iomem_wdata;
-	output reg [31:0] iomem_rdata;
-	reg [31:0] ram_data;
-
-	reg [3:0] STATE;
-	localparam S_IDLE = 3'd0,
-		S_PREAMBLE = 3'd1,
-		S_MODESET  = 3'd2,
-		S_PHY_ID   = 3'd3,
-		S_REG_ADDR = 3'd4,
-		S_RX_DATA  = 3'd5,
-		S_TX_DATA  = 3'd6,
-		S_END      = 3'd7;
-
-	/* MDIO interface */
-	reg [5:0] mdio_div; // 1/64 divider, 
-	output wire MDC;
-	assign MDC = mdio_div[5];
-	inout wire MDIO;
-	reg mdio_reg;
-	assign MDIO = (STATE == S_RX_DATA) ? 1'bz : mdio_reg; 
-
-	always @(posedge clk or negedge arst_n) // clock divider
-	begin
-		if (~arst_n) mdio_div <= 6'b0;
-		mdio_div <= mdio_div + 1'b1;
-	end
-
-	/* local signal */
-	reg [7:0] count_reg;
-	reg mode_reg; // 1:write, 0:read
-	reg [4:0] phy_id_reg;
-	reg [4:0] reg_addr_reg;
-
 	// convert endian, because riscv support little-endian, 
 	// but ethernet frame follow big endian
 	function [31:0] endian_conv (input [31:0] din);
@@ -71,69 +32,191 @@ module MDIO (
 	end
 	endfunction
 
-    always @(posedge MDC or negedge arst_n)
+	/* common signal */
+	reg [7:0] count_reg;
+	reg mode_reg; // 1:write, 0:read
+	reg [4:0] phy_id_reg;
+	reg [4:0] reg_addr_reg;
+
+	reg [15:0] tx_data_reg;
+	reg [15:0] rx_data_reg;
+
+    /* SoC Interface */
+	input         iomem_valid;
+	output  reg   iomem_ready;
+	input  [ 3:0] iomem_wstrb;
+	input  [31:0] iomem_addr;
+	input  [31:0] iomem_wdata;
+	output reg [31:0] iomem_rdata;
+
+    /* SM flag */
+    reg launch_SM; // assert by SoC  Interface. launch statemachine flag
+    reg busy_SM;   // assert by MDIO Interface. complete statemachine process flag
+
+    reg [1:0] IO_STATE;
+    localparam [1:0] S_IO_IDLE = 2'd0,
+            S_IO_AWAIT_BUSY = 2'd1,
+            S_IO_WAIT_MDIO  = 2'd2, // await MDIO
+            S_IO_DONE = 2'd3;
+    always @(posedge clk or negedge arst_n)
     begin
+        if (~arst_n)
+        begin
+            IO_STATE     <= S_IO_IDLE;
+            iomem_ready  <= 1'b0;
+            iomem_rdata  <= 16'b0;
+            mode_reg     <= 1'b0;
+            phy_id_reg   <= 5'b0;
+            reg_addr_reg <= 5'b0;
+            launch_SM    <= 1'b0;
+            tx_data_reg  <= 1'b0;
+        end
+        else
+        begin
+            case(IO_STATE)
+            S_IO_IDLE:
+            begin
+                    iomem_ready <= 1'b0;
+                    if (iomem_valid && ~iomem_ready && iomem_addr[31:24] == 8'h07)
+                    begin
+                            if (iomem_wstrb[1])
+                                    tx_data_reg[ 7: 0] <= iomem_wdata[15: 8];
+                            if (iomem_wstrb[0])
+                                    tx_data_reg[15: 8] <= iomem_wdata[ 7: 0];
+                            phy_id_reg   <= iomem_addr[12: 8];
+                            reg_addr_reg <= iomem_addr[ 6: 2];
+                            mode_reg     <= |iomem_wstrb; // 1: W, 0: R
+                            launch_SM    <= 1'b1; // launch statemachine
+                            IO_STATE     <= S_IO_AWAIT_BUSY;
+                    end
+            end
+
+            S_IO_AWAIT_BUSY:
+            begin
+                    if (busy_SM)  
+                    begin
+                            launch_SM <= 1'b0;
+                            IO_STATE <= S_IO_WAIT_MDIO;
+                    end
+            end
+            
+            S_IO_WAIT_MDIO:
+            begin
+                    if (~busy_SM) IO_STATE <= S_IO_DONE;
+            end
+
+            S_IO_DONE:
+            begin
+                    iomem_ready <= 1'b1; // assert ready pulse
+                    iomem_rdata <= endian_conv({rx_data_reg[15:0], 16'b0}); // endian conversion
+                    IO_STATE <= S_IO_IDLE;
+            end
+
+            default: IO_STATE <= S_IO_IDLE;
+            endcase
+        end
+    end
+
+    /* MDIO Interface */
+	reg [3:0] MDIO_STATE;
+	localparam S_IDLE = 4'd0,
+		S_PREAMBLE = 4'd1,
+		S_MODESET  = 4'd2,
+		S_PHY_ID   = 4'd3,
+		S_REG_ADDR = 4'd4,
+		S_TA       = 4'd5,
+		S_RX_DATA  = 4'd6,
+		S_TX_DATA  = 4'd7,
+		S_END      = 4'd8;
+
+	/* MDIO interface */
+	reg [5:0] mdc_div; // 1/64 divider, 
+	output wire mdc;
+	reg mdc_reg;
+	assign mdc = mdc_reg;
+	always @(posedge clk or negedge arst_n) // clock divider
+	begin
 		if (~arst_n)
-			ram_data <= 32'b0;
+		begin 
+			mdc_reg <= 1'b1;
+			mdc_div <= 6'b0;
+		end
 		else
 		begin
-			case (STATE)
+			mdc_div <= mdc_div + 1'b1;
+			if (mdc_div == 6'd63)
+				mdc_reg <= ~mdc_reg;
+		end
+	end
+
+	inout wire mdio;
+	reg mdio_reg;
+    reg mdio_sel; // 0 means in-mode, 1 means out-mode
+	assign mdio = mdio_sel ? mdio_reg : 1'bz;
+
+    always @(posedge mdc or negedge arst_n)
+    begin
+		if (~arst_n)
+        begin
+            MDIO_STATE <= S_IDLE;
+            count_reg    <= 8'b0;
+            mdio_reg     <= 1'b0;
+            mdio_sel     <= 1'b0; // default : High-Z
+            busy_SM      <= 1'b0;
+            rx_data_reg  <= 16'b0;
+        end
+		else
+		begin
+			case (MDIO_STATE)
 				S_IDLE:
 				begin
-					iomem_ready <= 1'b0;
-					if (iomem_valid && iomem_addr[31:24] == 8'h07)
-					begin
-						if (iomem_wstrb[3])
-							ram_data[31:24] <= iomem_wdata[31:24];
-						if (iomem_wstrb[2])
-							ram_data[23:16] <= iomem_wdata[23:16];
-						if (iomem_wstrb[1])
-							ram_data[15: 8] <= iomem_wdata[15: 8];
-						if (iomem_wstrb[0])
-							ram_data[ 7: 0] <= iomem_wdata[ 7: 0];
-						phy_id_reg   <= iomem_addr[12: 8];
-						reg_addr_reg <= iomem_addr[ 4: 0];
-						mode_reg   <= |iomem_wstrb; // 1: write, 0: read
-					end
+					mdio_sel <= 1'b0; // High-Z when Idle
+                    if (launch_SM)
+                    begin
+                        busy_SM <= 1'b1;
+                        MDIO_STATE <= S_PREAMBLE;
+                    end
 				end
 
 				S_PREAMBLE:
 				begin
+                    mdio_sel  <= 1'b1; // toggle to output-mode
 					count_reg <= count_reg + 1'b1;
-					mdio_reg <= 1'b1;
-					if (count_reg == 8'd32)
+					if (count_reg <  8'd32)
+						mdio_reg <= 1'b1;
+					else if (count_reg == 8'd32)
 						mdio_reg <= 1'b0;
 					else if (count_reg == 8'd33)
 					begin
 						count_reg <= 8'd0;
 						mdio_reg <= 1'b1;
-						STATE <= S_MODESET;
+						MDIO_STATE <= S_MODESET;
 					end
 				end
 
-				S_MODESET:
+				S_MODESET: // set read or write
 				begin
 					if (count_reg == 8'b0)
 					begin
 						count_reg <= 8'b1;
-						mdio_reg  <= mode_reg;
+						mdio_reg  <= ~mode_reg;
 					end
 					else
 					begin
 						count_reg <= 8'd4;
-						mdio_reg <= ~mode_reg;
-						STATE <= S_REG_ADDR;
+						mdio_reg  <= mode_reg;
+						MDIO_STATE     <= S_PHY_ID;
 					end
 				end
 
 				S_PHY_ID:
 				begin
 					count_reg <= count_reg - 1'b1; // Start from 4
-					mdio_reg <= phy_id_reg[count_reg];
+					mdio_reg  <= phy_id_reg[count_reg];
 					if (count_reg == 8'd0)
 					begin
 						count_reg <= 8'd4;
-						STATE <= S_REG_ADDR;
+						MDIO_STATE     <= S_REG_ADDR;
 					end
 				end
 
@@ -142,38 +225,56 @@ module MDIO (
 					count_reg <= count_reg - 1'b1; // Start from 4
 					mdio_reg  <= reg_addr_reg[count_reg];
 					if (count_reg == 8'd0)
+                    begin
+                        count_reg <= 8'd0;
+						MDIO_STATE <= S_TA;
+                    end
+				end
+
+                S_TA: // turn around, await 2-cycle
+                begin
+                    mdio_sel <= mode_reg; // select in or out for MDIO line
+					if (count_reg == 8'd0)
+                    begin
+                        mdio_reg  <= 1'b1;
+						count_reg <= 8'b1;
+                    end
+					else
 					begin
-						count_reg <= 8'd15;
-						if (mode_reg)
-							STATE <= S_TX_DATA;
-						else
-							STATE <= S_RX_DATA;
-					end
-				end
+						count_reg <= 8'd15; 
+                		if (mode_reg)
+                        begin
+                            mdio_reg <= 1'b0;
+                			MDIO_STATE <= S_TX_DATA;
+                        end
+                		else
+                			MDIO_STATE <= S_RX_DATA;
+                	end
+                end
 
-				S_RX_DATA:
+				S_RX_DATA: // Receive data from PHY
 				begin
 					count_reg <= count_reg - 1'b1; // Start from 15
-					ram_data  <= {MDIO, ram_data[31:1]}; // TODO : endian conversion
+					rx_data_reg <= {rx_data_reg[14:0], mdio};
 					if (count_reg == 8'd0)
-						STATE <= S_END;
+						MDIO_STATE <= S_END;
 				end
 
-				S_TX_DATA:
+				S_TX_DATA: // Transmit data from FPGA
 				begin
 					count_reg <= count_reg - 1'b1; // Start from 15
-					mdio_reg  <= ram_data[count_reg];
+					mdio_reg  <= tx_data_reg[count_reg];
 					if (count_reg == 8'd0)
-						STATE <= S_END;
+						MDIO_STATE <= S_END;
 				end
 
 				S_END:
 				begin
-					iomem_ready <= 1'b1;
-					iomem_rdata <= endian_conv(ram_data[31:0]); // endian conversion
+                    busy_SM   <= 1'b0;
 					count_reg <= 8'b0;
+                    mdio_sel  <= 1'b0; // restore output-mode
 					mdio_reg  <= 1'b0;
-					STATE <= S_END;
+					MDIO_STATE     <= S_IDLE;
 				end
 			endcase
 		end
