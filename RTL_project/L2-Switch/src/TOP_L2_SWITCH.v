@@ -17,6 +17,9 @@ module TOP_L2_SWITCH #(
 	PHY_RXD1,
 	PHY_CRS_DV,
 	
+	PHY_MDC,
+	PHY_MDIO,
+	
 	soc_uart_tx,
 	soc_uart_rx
 );
@@ -343,6 +346,7 @@ module TOP_L2_SWITCH #(
 	output wire soc_uart_tx;
 	input  wire soc_uart_rx;
 	
+	/*
 	wire        iomem_valid;
 	reg         iomem_ready;
 	wire [3:0]  iomem_wstrb;
@@ -353,6 +357,7 @@ module TOP_L2_SWITCH #(
 	function [31:0] endian_conv(input [31:0] din);
 		endian_conv = {din[7:0], din[15:8], din[23:16], din[31:24]};
 	endfunction	
+	*/
 	
 	/*
 	wire [15:0] phy_rx_succ_rx_count_sync[0:3];
@@ -367,6 +372,7 @@ module TOP_L2_SWITCH #(
 	endgenerate
 	*/
 	
+	/*
 	always @(posedge clk) begin
 		iomem_ready <= 0;
 		if (iomem_valid && !iomem_ready) begin
@@ -459,6 +465,7 @@ module TOP_L2_SWITCH #(
 			endcase
 		end
 	end	
+	*/
 	
     /* reset system */
     /* push USER PUSH BUTTON on the Tang PriMER to reset the circuit */
@@ -470,6 +477,13 @@ module TOP_L2_SWITCH #(
     		soc_reset_cnt <= 0;
     	else
         	soc_reset_cnt <= soc_reset_cnt + !soc_rst_n;	
+	
+	wire iomem_valid;
+	wire iomem_ready;
+	wire [ 3: 0] iomem_wstrb;
+	wire [31: 0] iomem_addr;
+	wire [31: 0] iomem_wdata;
+	wire [31: 0] iomem_rdata;	
 	
 	picosoc #(
 		.BARREL_SHIFTER(1),
@@ -497,4 +511,24 @@ module TOP_L2_SWITCH #(
 		.iomem_rdata  (iomem_rdata )
 	);	
 	
+	output wire PHY_MDC;
+	inout wire PHY_MDIO;	
+	
+	MDIO mdio_impl (
+    	.clk(soc_clk),
+    	.arst_n(usr_btn),
+
+		/* MDIO interface */
+    	.mdc(PHY_MDC),
+    	.mdio(PHY_MDIO),
+    
+    	/* picosoc IO interface */
+    	.iomem_valid(iomem_valid),
+    	.iomem_ready(iomem_ready),
+    	.iomem_wstrb(iomem_wstrb),
+    	.iomem_addr(iomem_addr),
+    	.iomem_wdata(iomem_wdata),
+    	.iomem_rdata(iomem_rdata)
+	);
+
 endmodule

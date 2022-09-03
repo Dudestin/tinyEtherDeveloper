@@ -83,6 +83,7 @@ module RMII_RX(
         succ_rx_count_next = succ_rx_count_reg;
         buff_OF_count_next = buff_OF_count_reg;
         seq_next  = {RXD1_lat, RXD0_lat, seq_reg[7:2]};
+        // seq_next  = {seq_reg[5:0], RXD0_lat, RXD1_lat};        
         fifo_din  = 8'b0;
         fifo_wren = 1'b0;
         fifo_EOD_in = 1'b0; // wire
@@ -103,6 +104,7 @@ module RMII_RX(
                 if (~CRS_DV) // abort
                     STATE_next = S_IDLE;
                 else if (seq_reg == 8'b1101_0101) // detect SFD
+                // else if (seq_reg == 8'b1010_1011) // detect SFD
                     STATE_next = S_BODY;
             end
             

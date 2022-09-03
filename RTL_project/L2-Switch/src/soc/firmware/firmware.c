@@ -31,13 +31,16 @@ extern uint32_t sram;
 #define reg_uart_data (*(volatile uint32_t*)0x02000008)
 #define reg_leds (*(volatile uint32_t*)0x03000000)
 
-// followings are original circuits interface.
-// able to rx, tx 64 Bytes Frame (don't forget FCS section !!).
-// if exceeded bytes there, the bytes will be ignored.
-#define reg_rx_frame (*(volatile struct FRAME_RX*)0x04000000)
-#define reg_rx_cfg   (*(volatile uint32_t*)0x14000000)
-#define reg_tx_frame (*(volatile struct FRAME_TX*)0x05000000)
-#define reg_tx_cfg   (*(volatile uint32_t*)0x15000000)
+#define PHY0_ADDR (volatile uint16_t*)0x07000000
+#define PHY1_ADDR (volatile uint16_t*)0x07000100
+#define PHY2_ADDR (volatile uint16_t*)0x07000200
+#define PHY3_ADDR (volatile uint16_t*)0x07000300
+
+#define REG0_OFFSET (0x00000000)
+#define REG1_OFFSET (0x00000001)
+#define REG2_OFFSET (0x00000002)
+#define REG3_OFFSET (0x00000003)
+#define REG4_OFFSET (0x00000004)
 
 // --------------------------------------------------------
 

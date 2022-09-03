@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2022-08-21 12:10:52</Project_Created_Time>
     <TD_Version>4.6.14756</TD_Version>
-    <UCode>00111001</UCode>
+    <UCode>11110110</UCode>
     <Name>L2-Switch</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -34,12 +34,12 @@
             <File>src/soc/rtl/picorv32.v</File>
             <File>src/soc/rtl/al_ip/sram9k.v</File>
             <File>src/MAC_SWITCH.v</File>
-            <File>al_ip/soc_reg_bram.v</File>
             <File>../common/src/LATCH_MAC_DEC.v</File>
+            <File>../common/src/MDIO.v</File>
         </Verilog>
         <ADC_FILE>constraints/rmii_io.adc</ADC_FILE>
         <SDC_FILE>constraints/rmii_timing.sdc</SDC_FILE>
-        <CWC_FILE/>
+        <CWC_FILE>hoge.cwc</CWC_FILE>
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
@@ -66,7 +66,7 @@
         </BitgenProperty::GeneralOption>
     </Property>
     <Project_Settings>
-        <Step_Last_Change>2022-08-31 14:05:40</Step_Last_Change>
+        <Step_Last_Change>2022-09-03 16:59:40</Step_Last_Change>
         <Current_Step>10</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
