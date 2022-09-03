@@ -120,6 +120,7 @@ module RMII_RX(
 
             S_END:
             begin
+            	succ_rx_count_next = succ_rx_count_reg + 1'b1;
                 STATE_next = S_IDLE;
             end
 

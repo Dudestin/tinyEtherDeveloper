@@ -22,7 +22,10 @@ module my_soc (
 
 	output ser_tx,
 	input ser_rx,
+	
+	input [31:0] gpio
 
+	/*
 	output led1,
 	output led2,
 	output led3,
@@ -31,8 +34,8 @@ module my_soc (
 
 	output ledr_n,
 	output ledg_n
+	*/
 );
-	parameter integer MEM_WORDS = 4096;
 
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
@@ -41,6 +44,7 @@ module my_soc (
 		reset_cnt <= reset_cnt + !resetn;
 	end
 
+	/*
 	wire [7:0] leds;
 
 	assign led1 = leds[1];
@@ -51,6 +55,7 @@ module my_soc (
 
 	assign ledr_n = !leds[6];
 	assign ledg_n = !leds[7];
+	*/
 
 	wire        iomem_valid;
 	reg         iomem_ready;
@@ -59,6 +64,7 @@ module my_soc (
 	wire [31:0] iomem_wdata;
 	reg  [31:0] iomem_rdata;
 
+	/*
 	reg [31:0] gpio;
 	assign leds = gpio;
 
@@ -74,6 +80,23 @@ module my_soc (
 				if (iomem_wstrb[1]) gpio[15: 8] <= iomem_wdata[15: 8];
 				if (iomem_wstrb[2]) gpio[23:16] <= iomem_wdata[23:16];
 				if (iomem_wstrb[3]) gpio[31:24] <= iomem_wdata[31:24];
+			end
+		end
+	end
+	*/
+	
+	wire [31:0] gpio_sync;
+	vec_sync_2ff sync_gpio_impl (.clk(clk), .din(gpio), .dout(gpio_sync));
+	
+	always @(posedge clk)
+	begin
+		if (!resetn) begin
+			iomem_ready <= 0;
+		end else begin
+			iomem_ready <= 0;
+			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h03) begin
+				iomem_ready <= 1;
+				iomem_rdata <= gpio_sync;
 			end
 		end
 	end

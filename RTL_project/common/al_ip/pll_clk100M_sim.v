@@ -1,25 +1,27 @@
-// Verilog netlist created by TD v4.4.433
-// Tue Jul 26 20:51:37 2022
+// Verilog netlist created by TD v4.6.14756
+// Wed Aug 31 11:00:19 2022
 
 `timescale 1ns / 1ps
-module pll_clk100M  // al_ip/pll_clk100M.v(22)
+module pll_clk100M  // ../common/al_ip/pll_clk100M.v(23)
   (
   refclk,
   reset,
   clk0_out,
+  clk1_out,
   extlock
   );
 
-  input refclk;  // al_ip/pll_clk100M.v(27)
-  input reset;  // al_ip/pll_clk100M.v(28)
-  output clk0_out;  // al_ip/pll_clk100M.v(30)
-  output extlock;  // al_ip/pll_clk100M.v(29)
+  input refclk;  // ../common/al_ip/pll_clk100M.v(29)
+  input reset;  // ../common/al_ip/pll_clk100M.v(30)
+  output clk0_out;  // ../common/al_ip/pll_clk100M.v(32)
+  output clk1_out;  // ../common/al_ip/pll_clk100M.v(33)
+  output extlock;  // ../common/al_ip/pll_clk100M.v(31)
 
-  wire clk0_buf;  // al_ip/pll_clk100M.v(32)
+  wire clk0_buf;  // ../common/al_ip/pll_clk100M.v(35)
 
   EG_PHY_GCLK bufg_feedback (
     .clki(clk0_buf),
-    .clko(clk0_out));  // al_ip/pll_clk100M.v(34)
+    .clko(clk0_out));  // ../common/al_ip/pll_clk100M.v(37)
   EG_PHY_CONFIG #(
     .DONE_PERSISTN("ENABLE"),
     .INIT_PERSISTN("ENABLE"),
@@ -32,10 +34,10 @@ module pll_clk100M  // al_ip/pll_clk100M.v(22)
     .CLKC0_DIV2_ENABLE("DISABLE"),
     .CLKC0_ENABLE("ENABLE"),
     .CLKC0_FPHASE(0),
-    .CLKC1_CPHASE(1),
-    .CLKC1_DIV(1),
+    .CLKC1_CPHASE(19),
+    .CLKC1_DIV(20),
     .CLKC1_DIV2_ENABLE("DISABLE"),
-    .CLKC1_ENABLE("DISABLE"),
+    .CLKC1_ENABLE("ENABLE"),
     .CLKC1_FPHASE(0),
     .CLKC2_CPHASE(1),
     .CLKC2_DIV(1),
@@ -55,20 +57,20 @@ module pll_clk100M  // al_ip/pll_clk100M.v(22)
     .DERIVE_PLL_CLOCKS("ENABLE"),
     .DPHASE_SOURCE("DISABLE"),
     .DYNCFG("DISABLE"),
-    .FBCLK_DIV(25),
+    .FBCLK_DIV(4),
     .FEEDBK_MODE("NORMAL"),
     .FEEDBK_PATH("CLKC0_EXT"),
     .FIN("24.000"),
     .FREQ_LOCK_ACCURACY(2),
     .GEN_BASIC_CLOCK("DISABLE"),
-    .GMC_GAIN(6),
+    .GMC_GAIN(2),
     .GMC_TEST(14),
-    .ICP_CURRENT(3),
+    .ICP_CURRENT(9),
     .IF_ESCLKSTSW("DISABLE"),
     .INTFB_WAKE("DISABLE"),
-    .KVCO(6),
-    .LPF_CAPACITOR(3),
-    .LPF_RESISTOR(2),
+    .KVCO(2),
+    .LPF_CAPACITOR(1),
+    .LPF_RESISTOR(8),
     .NORESET("DISABLE"),
     .ODIV_MUXC0("DIV"),
     .ODIV_MUXC1("DIV"),
@@ -85,7 +87,7 @@ module pll_clk100M  // al_ip/pll_clk100M.v(22)
     .PREDIV_MUXC2("VCO"),
     .PREDIV_MUXC3("VCO"),
     .PREDIV_MUXC4("VCO"),
-    .REFCLK_DIV(6),
+    .REFCLK_DIV(1),
     .REFCLK_SEL("INTERNAL"),
     .STDBY_ENABLE("DISABLE"),
     .STDBY_VCO_ENA("DISABLE"),
@@ -105,8 +107,8 @@ module pll_clk100M  // al_ip/pll_clk100M.v(22)
     .refclk(refclk),
     .reset(reset),
     .stdby(1'b0),
-    .clkc({open_n47,open_n48,open_n49,open_n50,clk0_buf}),
-    .extlock(extlock));  // al_ip/pll_clk100M.v(57)
+    .clkc({open_n47,open_n48,open_n49,clk1_out,clk0_buf}),
+    .extlock(extlock));  // ../common/al_ip/pll_clk100M.v(64)
 
 endmodule 
 
