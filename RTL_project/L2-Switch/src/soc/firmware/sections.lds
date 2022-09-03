@@ -9,7 +9,7 @@
 MEMORY
 {
 #    FLASH (rx)      : ORIGIN = 0x00100000, LENGTH = 0x400000 /* entire flash, 4 MiB */
-     SDRAM (xrw)     : ORIGIN = 0x01000000, LENGTH = 0xF00000 /* entire sdram, 16 MiB */
+#    SDRAM (xrw)     : ORIGIN = 0x01000000, LENGTH = 0xF00000 /* entire sdram, 16 MiB */
      RAM (xrw)       : ORIGIN = 0x00000000, LENGTH = 16384    /* BRAM9k RAM (4096words), 16 KiB */
 }
 
